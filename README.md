@@ -1,12 +1,3 @@
-pilusabena
-pilusabena
-En una llamada
-
-mat1
- ha iniciado una llamada que ha durado una hora. — 10/3/26, 17:34
-mat1
- ha iniciado una llamada. — 21:23
-mat1 — 23:21
 # TP1 — El Rendimiento de las Computadoras
 
 ## Parte 1 — Lista de benchmarks por tarea diaria
