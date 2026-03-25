@@ -8,10 +8,7 @@ La mejor forma de evaluar el rendimiento de un sistema es medir el tiempo que ta
 |---|---|---|---|
 | Compilar proyectos de software | Timed Linux Kernel Compilation (`pts/build-linux-kernel`) | Kernel | openbenchmarking.org |
 | Cálculo numérico / simulaciones | LINPACK / HPL (mide GFLOPS) | Sintético | top500.org / pts/linpack |
-| Procesamiento de imágenes y video | HandBrake H.265 encoding (`pts/encode-video`) | Kernel | openbenchmarking.org |
-| Desarrollo web / JavaScript | Speedometer 3.0 (simula apps web modernas) | Real | browserbench.org |
 | Trabajo con bases de datos | pgbench / sysbench (transacciones por segundo) | Kernel | pts/pgbench |
-| Machine learning / entrenamiento | MLPerf Training (tiempo hasta accuracy objetivo) | Real | mlcommons.org |
 | Uso general de escritorio | PCMark 10 / Geekbench 6 | Sintético | futuremark.com |
 | Compresión y archivado | 7-Zip benchmark (`pts/compress-7zip`) | Kernel | openbenchmarking.org |
 
