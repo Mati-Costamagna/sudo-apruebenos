@@ -312,7 +312,7 @@ Tomando 16 MHz como referencia y usando los tiempos totales:
 | 16 → 8 MHz | 16/8 = **2.00×** | 12189/10027 ≈ **1.22×** | 2.00× |
 | 16 → 4 MHz | 16/4 = **4.00×** | 15237/10027 ≈ **1.52×** | 4.00× |
 
-Los resultados muestran que los tiempos medidos **no escalan proporcionalmente** con la reducción de frecuencia. Al reducir la frecuencia a la mitad (16→8 MHz), el tiempo aumenta solo un 22% en vez del 100% esperado. Al reducir a un cuarto (16→4 MHz), el tiempo aumenta un 52% en vez del 300% esperado. Esto **no valida** la fórmula $T_{prog} \propto 1/f_{CPU}$, y la causa es una limitación del simulador (ver sección siguiente).
+Los resultados muestran que los tiempos medidos no escalan proporcionalmente con la reducción de frecuencia. Al reducir la frecuencia a la mitad (16→8 MHz), el tiempo aumenta solo un 22% en vez del 100% esperado. Al reducir a un cuarto (16→4 MHz), el tiempo aumenta un 52% en vez del 300% esperado. Esto no valida la fórmula $T_{prog} \propto 1/f_{CPU}$, y la causa es una limitación del simulador (ver sección siguiente).
 
 El tiempo de ejecución no depende solo de la frecuencia, sino también del número de instrucciones y del CPI promedio:
 
@@ -322,7 +322,7 @@ Un programa con más iteraciones y operaciones de mayor CPI (como multiplicació
 
 #### Por qué la simulación no refleja la relación teórica
 
-Wokwi **sí modela distintas velocidades de CPU**, pero aplica un **cap de frecuencia** que distorsiona los resultados. Según la documentación oficial del simulador:
+Wokwi sí modela distintas velocidades de CPU, pero aplica un cap de frecuencia que distorsiona los resultados. Según la documentación oficial del simulador:
 
 > *CPU frequency limit — In order to achieve a higher simulation speed, Wokwi automatically limits the maximum simulated CPU frequency. [...] The CPU frequency limit does not affect the timing of the peripherals, only the speed instructions are executed. [...] The default value is "auto", which means that Wokwi will automatically cap the CPU frequency to about 8 MHz.*
 
@@ -332,15 +332,15 @@ Esto explica el comportamiento observado:
 2. **Por debajo del cap sí hay efecto.** A 4 MHz (por debajo del cap de 8 MHz), el simulador ejecuta las instrucciones a la velocidad configurada, y se observa un aumento mayor del tiempo (52% vs 16 MHz). Sin embargo, como la referencia de 16 MHz ya está capeada a ~8 MHz, la comparación no refleja un ratio real de 4:1 sino más bien de ~2:1 (8 MHz capeado → 4 MHz real).
 3. **Los periféricos no se ven afectados.** La documentación aclara que el cap solo afecta la velocidad de ejecución de instrucciones, no el timing de periféricos como `millis()`, lo que permite que las mediciones de tiempo sigan siendo válidas en términos relativos.
 
-Para verificar experimentalmente la relación $T \propto 1/f_{CPU}$ con proporcionalidad exacta se necesitaría **hardware real** (una ESP32 física) o configurar el atributo `"cpuFrequency": "max"` en Wokwi (lo cual intentamos realizar pero comprobamos lo dicho en la documentación de que hace excesivamente lenta la simulación).
+Para verificar experimentalmente la relación $T \propto 1/f_{CPU}$ con proporcionalidad exacta se necesitaría hardware real (una ESP32 física) o configurar el atributo `"cpuFrequency": "max"` en Wokwi (lo cual intentamos realizar pero comprobamos lo dicho en la documentación de que hace excesivamente lenta la simulación).
 
 ### Conclusiones
 
-1. La relación teórica $T \propto 1/f_{CPU}$ **no pudo verificarse con proporcionalidad exacta** en esta simulación. Al reducir la frecuencia de 16 a 4 MHz (ratio teórico 4×), el tiempo solo aumentó un 52% (ratio medido 1.52×).
-2. La causa principal es el **cap de frecuencia de Wokwi** (~8 MHz por defecto): frecuencias configuradas por encima del cap se ejecutan a la misma velocidad, distorsionando las mediciones. Por debajo del cap sí se observa un efecto parcial del cambio de frecuencia.
-3. El **CPI no es constante** entre tipos de operaciones: las operaciones de punto flotante (multiplicación float) tienen un CPI mayor que las operaciones enteras simples (suma), lo cual se refleja en la diferencia de tiempos entre ambos bucles.
-4. Para medir rendimiento de forma confiable es necesario: (a) usar **hardware real** o un simulador cycle-accurate, y (b) asegurarse de que el compilador **no elimine el código bajo prueba**, usando `volatile` o dependencias entre iteraciones.
-5. La simulación sí es útil para verificar el **comportamiento funcional** del código (que la API `setCpuFrequencyMhz` funciona, que los cálculos dan resultados correctos), pero no para medir efectos de rendimiento ligados a la frecuencia.
+1. La relación teórica $T \propto 1/f_{CPU}$ no pudo verificarse con proporcionalidad exacta en esta simulación. Al reducir la frecuencia de 16 a 4 MHz (ratio teórico 4×), el tiempo solo aumentó un 52% (ratio medido 1.52×).
+2. La causa principal es el cap de frecuencia de Wokwi (~8 MHz por defecto): frecuencias configuradas por encima del cap se ejecutan a la misma velocidad, distorsionando las mediciones. Por debajo del cap sí se observa un efecto parcial del cambio de frecuencia.
+3. El CPI no es constante entre tipos de operaciones: las operaciones de punto flotante (multiplicación float) tienen un CPI mayor que las operaciones enteras simples (suma), lo cual se refleja en la diferencia de tiempos entre ambos bucles.
+4. Para medir rendimiento de forma confiable es necesario: (a) usar hardware real o un simulador cycle-accurate, y (b) asegurarse de que el compilador no elimine el código bajo prueba, usando `volatile` o dependencias entre iteraciones.
+5. La simulación sí es útil para verificar el comportamiento funcional del código (que la API `setCpuFrequencyMhz` funciona, que los cálculos dan resultados correctos), pero no para medir efectos de rendimiento ligados a la frecuencia.
 
 ---
 
@@ -351,5 +351,3 @@ Para verificar experimentalmente la relación $T \propto 1/f_{CPU}$ con proporci
 - Tutorial gprof: Himanshu Arora (2012), adaptado por Javier Jorge 
 - Wokwi ESP32 Simulator — https://wokwi.com/projects/new/esp32
 - Material de cátedra: *El rendimiento de las computadoras* y *Time Profiling (GPROF & Perf)*
-message.txt
-18 KB
