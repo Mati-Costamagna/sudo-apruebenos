@@ -43,7 +43,7 @@ La media geométrica resume el rendimiento relativo a través de los 348 benchma
 | Intel Core i5-13600K | **67.80** | 2° |
 | AMD Ryzen 9 5900X 12-Core | **59.97** | 3° |
 
-> El i5-13600K supera al Ryzen 9 5900X en rendimiento general a pesar de tener solo 14 núcleos contra 12, gracias a su arquitectura más nueva (Raptor Lake 2022 vs Zen 3 2020) y mayor frecuencia de clock (5.1 GHz vs 3.7 GHz).
+> El i5-13600K supera al Ryzen 9 5900X en rendimiento general a pesar de tener menos hilos (20 vs 24), gracias a su arquitectura más nueva (Raptor Lake 2022 vs Zen 3 2020) y mayor frecuencia de clock (5.1 GHz vs 3.7 GHz).
 
 ### Rendimiento en compilación del kernel Linux
 
@@ -53,7 +53,7 @@ La media geométrica resume el rendimiento relativo a través de los 348 benchma
 | AMD Ryzen 9 5900X 12-Core | ~76 s | 47° |
 | AMD Ryzen 9 7950X 16-Core | ~50 s | 71° |
 
-> En este benchmark específico el 5900X supera levemente al i5-13600K gracias a su mayor cantidad de hilos (24 vs 20), lo que favorece la compilación paralela con `make -j`. Esto ilustra que el rendimiento es relativo a la carga de trabajo.
+> En este benchmark específico el i5-13600K supera levemente al 5900X (~72 s vs ~76 s) a pesar de tener menos hilos (20 vs 24). La ventaja arquitectónica de Raptor Lake y su mayor frecuencia de clock compensan la diferencia de hilos, incluso en una carga paralela como `make -j`. Esto ilustra que el rendimiento depende no solo de la cantidad de núcleos/hilos, sino también de la microarquitectura y la frecuencia.
 
 ---
 
@@ -91,7 +91,7 @@ El Ryzen 9 5900X tiene un speedup menor a 1 respecto al i5-13600K en rendimiento
 | Ryzen 9 7950X vs i5-13600K | 72 | ~50 | 72/50 ≈ **1.44x** |
 | Ryzen 9 7950X vs Ryzen 9 5900X | ~76 | ~50 | 76/50 ≈ **1.52x** |
 
-En este benchmark puntual el 5900X sí supera al i5 (speedup > 1) por su mayor cantidad de hilos.
+En compilación, el 5900X también queda por debajo del i5 (speedup 0.94×, menor que 1), consistente con lo observado en la Parte 2. El 7950X es el único que supera claramente al i5 en ambas métricas (general y compilación).
 
 ### Eficiencia por núcleo
 
