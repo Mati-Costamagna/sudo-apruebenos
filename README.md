@@ -29,9 +29,9 @@ La mejor forma de evaluar el rendimiento de un sistema es medir el tiempo que ta
 
 | Procesador | Núcleos | Hilos | CPU Clock | Core Family | Año | Percentil general |
 |---|---|---|---|---|---|---|
-| AMD Ryzen 9 5900X 12-Core | 12 | 24 | 3.7 GHz | Zen 3 | 2020 | 55° |
-| Intel Core i5-13600K | 14 | 20 | 5.1 GHz | Raptor Lake | 2022 | 57° |
-| AMD Ryzen 9 7950X 16-Core | 16 | 32 | 4.5 GHz | Zen 4 | 2022 | 72° |
+| AMD Ryzen 9 5900X 12-Core | 12 | 24 | 3.7 GHz | Zen 3 | 2020 | 52° |
+| Intel Core i5-13600K | 14 | 20 | 5.1 GHz | Raptor Lake | 2022 | 47° |
+| AMD Ryzen 9 7950X 16-Core | 16 | 32 | 4.5 GHz | Zen 4 | 2022 | 71° |
 
 ### Rendimiento general — Media geométrica de todos los benchmarks
 
@@ -39,9 +39,9 @@ La media geométrica resume el rendimiento relativo a través de los 348 benchma
 
 | Procesador | Media geométrica | Ranking |
 |---|---|---|
-| AMD Ryzen 9 7950X 16-Core | **94.41** | 1° |
-| Intel Core i5-13600K | **67.41** | 2° |
-| AMD Ryzen 9 5900X 12-Core | **59.63** | 3° |
+| AMD Ryzen 9 7950X 16-Core | **95.03** | 1° |
+| Intel Core i5-13600K | **67.80** | 2° |
+| AMD Ryzen 9 5900X 12-Core | **59.97** | 3° |
 
 > El i5-13600K supera al Ryzen 9 5900X en rendimiento general a pesar de tener solo 14 núcleos contra 12, gracias a su arquitectura más nueva (Raptor Lake 2022 vs Zen 3 2020) y mayor frecuencia de clock (5.1 GHz vs 3.7 GHz).
 
@@ -49,9 +49,9 @@ La media geométrica resume el rendimiento relativo a través de los 348 benchma
 
 | Procesador | Tiempo aprox. (s) | Percentil compilación |
 |---|---|---|
-| Intel Core i5-13600K | ~83 s | 56° |
-| AMD Ryzen 9 5900X 12-Core | ~76 s | 56° |
-| AMD Ryzen 9 7950X 16-Core | ~54 s | ~70° |
+| Intel Core i5-13600K | ~72 s | 52° |
+| AMD Ryzen 9 5900X 12-Core | ~76 s | 47° |
+| AMD Ryzen 9 7950X 16-Core | ~50 s | 71° |
 
 > En este benchmark específico el 5900X supera levemente al i5-13600K gracias a su mayor cantidad de hilos (24 vs 20), lo que favorece la compilación paralela con `make -j`. Esto ilustra que el rendimiento es relativo a la carga de trabajo.
 
@@ -73,13 +73,13 @@ donde `n` es la cantidad de recursos (en este caso, núcleos).
 
 ### Speedup — basado en media geométrica general
 
-Usando el i5-13600K como procesador de referencia (base = 67.41):
+Usando el i5-13600K como procesador de referencia (base = 67.80):
 
 | Procesador mejorado | Rendimiento | Referencia | Speedup |
 |---|---|---|---|
-| Ryzen 9 5900X | 59.63 | i5-13600K (67.41) | 59.63 / 67.41 ≈ **0.88×** |
-| Ryzen 9 7950X | 94.41 | i5-13600K (67.41) | 94.41 / 67.41 ≈ **1.40×** |
-| Ryzen 9 7950X | 94.41 | Ryzen 9 5900X (59.63) | 94.41 / 59.63 ≈ **1.58×** |
+| Ryzen 9 5900X | 59.97 | i5-13600K (67.80) | 59.97 / 67.80 ≈ **0.88×** |
+| Ryzen 9 7950X | 95.03| i5-13600K (67.80) | 95.03 / 67.80 ≈ **1.40×** |
+| Ryzen 9 7950X | 95.03 | Ryzen 9 5900X (59.97) | 95.03 / 59.97 ≈ **1.58×** |
 
 El Ryzen 9 5900X tiene un speedup menor a 1 respecto al i5-13600K en rendimiento general, lo que significa que el i5 es más rápido en la mayoría de las cargas. El 7950X es el único que supera claramente al i5, con un 40% más de rendimiento general.
 
@@ -87,9 +87,9 @@ El Ryzen 9 5900X tiene un speedup menor a 1 respecto al i5-13600K en rendimiento
 
 | Procesador mejorado | T_ref (s) | T_nuevo (s) | Speedup |
 |---|---|---|---|
-| Ryzen 9 5900X vs i5-13600K | 83 | ~76 | 83/76 ≈ **1.09×** |
-| Ryzen 9 7950X vs i5-13600K | 83 | ~54 | 83/54 ≈ **1.54×** |
-| Ryzen 9 7950X vs Ryzen 9 5900X | ~76 | ~54 | 76/54 ≈ **1.41×** |
+| Ryzen 9 5900X vs i5-13600K | 72 | ~76 | 72/76 ≈ **0.94x** |
+| Ryzen 9 7950X vs i5-13600K | 72 | ~50 | 72/50 ≈ **1.44x** |
+| Ryzen 9 7950X vs Ryzen 9 5900X | ~76 | ~50 | 76/50 ≈ **1.52x** |
 
 En este benchmark puntual el 5900X sí supera al i5 (speedup > 1) por su mayor cantidad de hilos.
 
@@ -107,15 +107,15 @@ OpenBenchmarking.org también reporta la media geométrica por dólar invertido,
 
 | Procesador | Precio ref. | Media geométrica/$ | Ranking costo |
 |---|---|---|---|
-| Intel Core i5-13600K | $320 | **0.211** | 1° |
-| AMD Ryzen 9 7950X 16-Core | $569 | **0.166** | 2° |
+| Intel Core i5-13600K | $320 | **0.212** | 1° |
+| AMD Ryzen 9 7950X 16-Core | $569 | **0.167** | 2° |
 
 El i5-13600K es más eficiente en términos de costo, ofreciendo mayor rendimiento por dólar que el 7950X. El 7950X tiene rendimiento absoluto superior pero su precio casi duplica al del i5, por lo que la elección depende de si la prioridad es el rendimiento máximo o la relación precio/rendimiento.
 
 ### Análisis
 
-- El Ryzen 9 7950X lidera en rendimiento absoluto (media geométrica 94.41) y en eficiencia por núcleo (0.088), gracias a sus 16 núcleos Zen 4, soporte AVX-512 y alta frecuencia sostenida.
-- El i5-13600K lidera en eficiencia por costo (0.211 puntos/$), siendo la mejor opción si el presupuesto es una restricción.
+- El Ryzen 9 7950X lidera en rendimiento absoluto (media geométrica 95.03) y en eficiencia por núcleo (0.088), gracias a sus 16 núcleos Zen 4, soporte AVX-512 y alta frecuencia sostenida.
+- El i5-13600K lidera en eficiencia por costo (0.212 puntos/$), siendo la mejor opción si el presupuesto es una restricción.
 - El Ryzen 9 5900X, siendo de 2020 y arquitectura Zen 3, queda por debajo del i5-13600K en rendimiento general a pesar de tener más hilos, lo que demuestra que la generación de arquitectura importa tanto como el conteo de núcleos.
 
 ---
