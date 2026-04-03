@@ -3,10 +3,10 @@ Flat profile:
 Each sample counts as 0.01 seconds.
   %   cumulative   self              self     total           
  time   seconds   seconds    calls   s/call   s/call  name    
- 34.00      7.47     7.47        1     7.47    14.75  func1
- 33.14     14.75     7.28        1     7.28     7.28  new_func1
- 32.77     21.95     7.20        1     7.20     7.20  func2
-  0.09     21.97     0.02                             main
+ 33.55      7.36     7.36        1     7.36    14.64  func1
+ 33.18     14.64     7.28        1     7.28     7.28  new_func1
+ 33.14     21.91     7.27        1     7.27     7.27  func2
+  0.14     21.94     0.03                             main
 
  %         the percentage of the total running time of the
 time       program used by this function.
@@ -35,7 +35,7 @@ name       the name of the function.  This is the minor sort
 	   in parenthesis it shows where it would appear in
 	   the gprof listing if it were to be printed.
 
-Copyright (C) 2012-2023 Free Software Foundation, Inc.
+Copyright (C) 2012-2024 Free Software Foundation, Inc.
 
 Copying and distribution of this file, with or without modification,
 are permitted in any medium without royalty provided the copyright
@@ -44,23 +44,23 @@ notice and this notice are preserved.
 		     Call graph (explanation follows)
 
 
-granularity: each sample hit covers 4 byte(s) for 0.05% of 21.97 seconds
+granularity: each sample hit covers 4 byte(s) for 0.05% of 21.94 seconds
 
 index % time    self  children    called     name
                                                  <spontaneous>
-[1]    100.0    0.02   21.95                 main [1]
-                7.47    7.28       1/1           func1 [2]
-                7.20    0.00       1/1           func2 [4]
+[1]    100.0    0.03   21.91                 main [1]
+                7.36    7.28       1/1           func1 [2]
+                7.27    0.00       1/1           func2 [4]
 -----------------------------------------------
-                7.47    7.28       1/1           main [1]
-[2]     67.1    7.47    7.28       1         func1 [2]
+                7.36    7.28       1/1           main [1]
+[2]     66.7    7.36    7.28       1         func1 [2]
                 7.28    0.00       1/1           new_func1 [3]
 -----------------------------------------------
                 7.28    0.00       1/1           func1 [2]
-[3]     33.1    7.28    0.00       1         new_func1 [3]
+[3]     33.2    7.28    0.00       1         new_func1 [3]
 -----------------------------------------------
-                7.20    0.00       1/1           main [1]
-[4]     32.8    7.20    0.00       1         func2 [4]
+                7.27    0.00       1/1           main [1]
+[4]     33.1    7.27    0.00       1         func2 [4]
 -----------------------------------------------
 
  This table describes the call tree of the program, and was sorted by
@@ -145,7 +145,7 @@ index % time    self  children    called     name
  for that member, how many times it was called from other members of
  the cycle.
 
-Copyright (C) 2012-2023 Free Software Foundation, Inc.
+Copyright (C) 2012-2024 Free Software Foundation, Inc.
 
 Copying and distribution of this file, with or without modification,
 are permitted in any medium without royalty provided the copyright
