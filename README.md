@@ -1,4 +1,4 @@
-# Informe del Trabajo Practico: Índice GINI y Convención de Llamadas
+# Índice GINI y Convención de Llamadas
 
 **Asignatura:** Sistemas de Computación  
 
@@ -15,23 +15,26 @@
 
 **Fecha:** Abril 2026
 
-> Este proyecto implementa una **aplicación de tres capas** para el procesamiento de datos económicos (Índice GINI del Banco Mundial). El enfoque principal es dominar la **interoperabilidad entre lenguajes** y la **Convención de Llamadas (Calling Convention) en arquitecturas x86-64**, con énfasis en el Stack Frame y paso de parámetros.
+---
+
+La pregunta que guió todo el trabajo fue simple: ¿cómo hace Python para hablarle a una función escrita en Assembly? No es magia — hay una cadena de convenciones muy específicas que este TP intenta desnudar capa por capa.
+
+El dominio elegido fue el Índice GINI del Banco Mundial, no porque sea especialmente interesante como dato, sino porque tiene la forma correcta: un número flotante que viaja desde una API hasta una instrucción de CPU, pasando por tres lenguajes distintos.
 
 ---
 
-## Objetivos del Trabajo
+## Objetivos
 
-### Objetivo General
-Implementar una calculadora de índices GINI que integre **múltiples niveles de abstracción** (Python, C, Assembly) para comprender cómo los lenguajes de alto nivel se mapean a instrucciones de CPU.
+El objetivo general fue implementar una calculadora de índices GINI integrando Python, C y Assembly para entender de primera mano cómo los lenguajes de alto nivel terminan mapeándose a instrucciones concretas de CPU.
 
-### Objetivos Específicos
-1. **Consumir datos externos** mediante API REST (Banco Mundial)
-2. **Integrar C desde Python** usando FFI (ctypes)
-3. **Implementar Stack Frame** forzando parámetros al stack
-4. **Dominar convención de llamadas** System V AMD64 ABI
-5. **Acceder a parámetros** mediante desplazamientos relativos a %rbp
-6. **Debuggear bajo nivel** con GDB inspeccionando memoria
-7. **Comparar performance** entre las tres implementaciones
+Para llegar ahí, nos propusimos:
+1. Consumir datos reales desde la API REST del Banco Mundial
+2. Integrar C desde Python usando ctypes (FFI)
+3. Implementar un Stack Frame genuino en x86-64, forzando argumentos al stack
+4. Dominar la convención System V AMD64 ABI
+5. Acceder a parámetros via desplazamientos relativos a `%rbp`
+6. Debuggear con GDB inspeccionando el stack en tiempo real
+7. Comparar la performance entre las tres implementaciones (con resultados que sorprenden)
 
 ---
 
@@ -65,16 +68,13 @@ Implementar una calculadora de índices GINI que integre **múltiples niveles de
 
 ## Fase 1: Integración Python + C
 
-### Descripción
-
-En la primera fase, se establece la comunicación entre el intérprete de Python y una librería compartida en C mediante **ctypes** (Foreign Function Interface). El objetivo es demostrar la interoperabilidad básica sin complicaciones de bajo nivel.
+La primera fase establece la comunicación entre Python y una librería compartida en C mediante ctypes, sin todavía bajar al Assembly. El objetivo era entender el "puente" antes de complicar la lógica del otro lado.
 
 ### Flujo de Datos
 ![Diagrama de Flujo Fase 1](fase1/diagrama_fase1.svg)
 
-### Componentes
+Python llama a ctypes, ctypes se encarga del marshalling de tipos (convierte el `float` de Python a un `c_float` que C puede recibir), y C hace la operación:
 
-#### Capa Superior: Python
 ```python
 # fase1/main.py
 import requests
@@ -93,13 +93,6 @@ lib.float_to_int.restype = ctypes.c_int
 gini_int = lib.float_to_int(42.3)  # ← ctypes marshals: float → c_float
 ```
 
-#### Capa Intermedia: ctypes (FFI)
-- **Extrae** valores primitivos de objetos Python
-- **Convierte** tipos: `float → ctypes.c_float`
-- **Prepara** el "calling frame" siguiendo System V AMD64 ABI
-- **Entra** en la librería C `.so`
-
-#### Capa Inferior: C
 ```c
 // fase1/gini.c - C Puro (SIN Assembly aún)
 int float_to_int(float value) {
@@ -129,9 +122,7 @@ AÑO    | GINI ORIGINAL   | ENTERO (C) | SUMA +1 (C)
 
 ## Fase 2: Stack Frame y Convención de Llamadas {#fase-2}
 
-### Descripción
-
-La segunda fase evoluciona el proyecto hacia el **bajo nivel**, reemplazando la lógica de C por rutinas en **Assembler x86-64**. El foco principal es **comprender y manipular el Stack Frame**.
+Acá empieza lo interesante. La segunda fase reemplaza la lógica de C por rutinas en Assembly x86-64, con el foco puesto en entender y manipular el Stack Frame. No alcanzaba con leerlo en la teoría — había que hacer que un valor llegara al stack y luego leerlo desde Assembly para que tuviera sentido.
 
 ### Flujo de Datos
 ![Diagrama de Flujo Fase 2](fase2/diagrama_flujo.svg)
@@ -139,11 +130,15 @@ La segunda fase evoluciona el proyecto hacia el **bajo nivel**, reemplazando la 
 ### Diagrama de Secuencia
 ![Diagrama de Secuencia Fase 2](fase2/diagrama_secuencia.svg)
 
-### Estrategia: Dummy Arguments
+### La Estrategia: Dummy Arguments
 
-Para **forzar** el uso del Stack Frame, se utilizan los siguientes pasos:
+El problema es que la convención System V AMD64 ABI pasa los primeros argumentos en registros, no en el stack. Si pasamos un solo `float`, va directo a `%xmm0` y nunca toca el stack. Para forzar el comportamiento que queremos estudiar, usamos una técnica pedagógica: saturar todos los registros disponibles con argumentos basura antes de pasar el valor real.
 
-#### Paso 1: Agregar "Dummy Arguments" en C
+**System V AMD64 ABI define:**
+- **6 registros enteros**: `%rdi`, `%rsi`, `%rdx`, `%rcx`, `%r8`, `%r9`
+- **8 registros XMM** (punto flotante): `%xmm0`–`%xmm7`
+
+Eso son 14 registros. El argumento número 15 no tiene a dónde ir — debe ir al stack.
 
 ```c
 // fase2/gini.c
@@ -158,19 +153,7 @@ int float_to_int(float value) {
 }
 ```
 
-#### Paso 2: ¿Por qué exactamente 15 argumentos?
-
-**System V AMD64 ABI** define:
-- **6 registros enteros**: `%rdi`, `%rsi`, `%rdx`, `%rcx`, `%r8`, `%r9`
-- **8 registros XMM** (punto flotante): `%xmm0`–`%xmm7`
-- **Total**: 14 registros disponibles
-
-Al pasar **15 argumentos**:
-- Los primeros **6 enteros** van a `%rdi`–`%r9`
-- Los siguientes **8 doubles** van a `%xmm0`–`%xmm7`
-- El **15º argumento** (el real) **DEBE ir al Stack** ✓
-
-#### Paso 3: Acceso en Assembly
+Desde Assembly, el valor ya está en el stack y podemos leerlo con un offset relativo a `%rbp`:
 
 ```asm
 # fase2/gini_asm.s
@@ -185,7 +168,7 @@ asm_float_to_int:
     ret
 ```
 
-**Resultado**: El valor llega en `0x10(%rbp)` del stack. ¿Por qué `0x10`? Ver sección siguiente.
+El `0x10` no es arbitrario — tiene una razón exacta que explicamos en la sección siguiente.
 
 ### Ejecución Fase 2
 ```bash
@@ -205,36 +188,25 @@ AÑO    | GINI ORIGINAL   | ENTERO (C/ASM) | SUMA +1 (C/ASM)
 
 ## Stack Frame Layout (Análisis Detallado)
 
-### Nota sobre Arquitectura
+### Una aclaración importante sobre las arquitecturas
 
-La **clase teórica (Clase_1_Call_Convention.pdf)** utiliza **x86 de 32 bits** con **EBP** (Extended Base Pointer):
-```asm
-push ebp          ; Guardar 4 bytes (32-bit)
-mov  ebp, esp
-```
+En la clase teórica se trabaja con **x86 de 32 bits** y el registro **EBP**. Este proyecto corre en **x86-64 de 64 bits**, lo que cambia los tamaños de todo:
 
-Este proyecto implementa **x86-64 de 64 bits** con **RBP** (64-bit Base Pointer):
-```asm
-pushq %rbp        ; Guardar 8 bytes (64-bit) - la 'q' significa "quad word"
-movq  %rsp, %rbp
-```
-
-**Diferencias**:
 | Aspecto | x86 (32-bit) | x86-64 (64-bit) |
 |---------|--------------|-----------------|
 | Registro Base | **EBP** | **RBP** |
-| Tamaño guardarRBP | 4 bytes | 8 bytes |
-| Offset 1er parámetro | `EBP + 8` | **`RBP + 16` (0x10)** |
+| Tamaño al guardar | 4 bytes | 8 bytes |
+| Offset 1er parámetro en stack | `EBP + 8` | **`RBP + 16` (0x10)** |
 | ISA | IA-32 | AMD64/System V |
 
-El resto de la lógica es equivalente, solo que con tamaños de palabra (word size) diferentes.
+La lógica es la misma; solo cambia el word size. Eso es lo que explica el `0x10`.
 
 ### Diagrama Interactivo
 ![Diagrama del Stack Frame](fase2/diagrama_stack.svg)
 
-### Cálculo del Offset: ¿Por qué `0x10(%rbp)`? (x86-64)
+### ¿Por qué exactamente `0x10(%rbp)`?
 
-Cuando entra la función `asm_float_to_int()`, el stack se ve así:
+Cuando `call` invoca a `asm_float_to_int`, guarda la dirección de retorno en el stack. Después, el prólogo de la función guarda el `%rbp` anterior. Al terminar el prólogo, el stack quedó así:
 
 ```
 ANTES de pushq %rbp:          DESPUÉS de pushq %rbp:        DESPUÉS de movq %rsp, %rbp:
@@ -250,24 +222,15 @@ ANTES de pushq %rbp:          DESPUÉS de pushq %rbp:        DESPUÉS de movq %r
                               └───────────────────┘         └───────────────────┘
 ```
 
-**Cálculo del desplazamiento (x86-64)**:
+Contando desde `%rbp`:
 
-| Concepto | Tamaño | Offset desde RBP | Contenido |
-|----------|--------|------------------|-----------|
-| RBP anterior (guardado por `pushq %rbp`) | **8 bytes** | `0x00(%rbp)` | Dirección de RBP anterior |
-| RIP (guardado por `call`) | **8 bytes** | `0x08(%rbp)` | Dirección de retorno |
-| **Primer parámetro en stack** | - | **`0x10(%rbp)`** | **gini_value (float)** ✓ |
-| Segundo parámetro en stack | - | `0x18(%rbp)` | (siguiente) |
+| Contenido | Tamaño | Offset |
+|-----------|--------|--------|
+| RBP anterior (guardado por `pushq %rbp`) | 8 bytes | `0x00(%rbp)` |
+| RIP — dirección de retorno (guardado por `call`) | 8 bytes | `0x08(%rbp)` |
+| **gini_value — nuestro float** | 4 bytes | **`0x10(%rbp)`** ✓ |
 
-**Matemática (x86-64 de 64 bits)**:
-- `0x00` = RBP anterior: 8 bytes = 0x08
-- `0x08` = RIP (return address): 8 bytes = 0x08
-- **`0x10` (16 en decimal)** = 0x08 + 0x08 = 0x10 ✓
-
-**Comparación con x86 (32 bits)** (como en la clase):
-- `0x00` = EBP anterior: 4 bytes = 0x04
-- `0x04` = RIP (return address): 4 bytes = 0x04
-- **`0x08` (8 en decimal)** = 0x04 + 0x04 = 0x08 (primer parámetro en EBP+8)
+8 + 8 = 16 = 0x10. Si fuera x86 de 32 bits, serían 4 + 4 = 8 = 0x08, que es lo que se ve en las diapositivas de clase.
 
 ### Instrucciones Clave
 
@@ -289,7 +252,7 @@ ret                             # Salta a dirección guardada en [RSP]
 
 ## Casos de Prueba
 
-### Tabla de Pruebas
+La instrucción `cvttss2si` (Convert with Truncation) trunca hacia **cero**, no redondea. Eso significa que `42.99` da `42`, y `-15.7` da `-15`. Al principio parece raro, pero es el comportamiento definido: truncar es cortar la parte decimal, no buscar el entero más cercano.
 
 | # | Entrada (float) | Esperado (int) | Actual (int) | Suma +1 |
 |---|-----------------|----------------|--------------|---------|
@@ -301,22 +264,11 @@ ret                             # Salta a dirección guardada en [RSP]
 | 6 | 0.0 | 0 | 0 | 1 |
 | 7 | 99.99 | 99 | 99 | 100 |
 
-### Información sobre Truncamiento
-
-La instrucción `cvttss2si` (Convert with Truncation) trunca hacia **cero**:
-- `42.99` → `42` (not 43, even though closer)
-- `-15.7` → `-15` (not -16)
-- `0.5` → `0` (not 1)
-
-Este es el comportamiento esperado de **truncamiento**, no redondeo.
-
 ---
 
 ## Análisis de Performance
 
 ### Benchmark: Python vs C vs C+Assembly
-
-Para comparar la performance de las tres implementaciones, se proporciona el script `benchmark.py`:
 
 ```bash
 $ python3 benchmark.py
@@ -332,26 +284,16 @@ C (Fase 1)             1.200 μs           0.02x (FFI overhead)
 C+ASM (Fase 2)         1.210 μs           0.02x (FFI overhead)
 ```
 
-### Análisis
+### Lo que muestran los números
 
-1. **Python es más rápido**: Porque `int()` es una operación **trivial** en Python, y el overhead de ctypes (~0.8-1.0 μs) domina.
+El resultado más contraintuitivo del TP: **Python ganó**. No porque `int()` sea una maravilla de optimización, sino porque el overhead fijo de ctypes (~0.8–1.0 μs por llamada) eclipsa completamente cualquier ventaja que tenga C o Assembly cuando la operación en sí es trivial. C y C+ASM son prácticamente indistinguibles por la misma razón.
 
-2. **C y C+Assembly son prácticamente idénticos**: Porque la operación es muy simple; el tiempo se gasta en el marshalling de ctypes, no en la lógica.
+Esto no significa que Assembly no sirva. Significa que hay que elegir bien dónde usarlo:
+- Cuando la lógica es **compleja** (loops, vectorización SIMD, etc.) el overhead de FFI pasa a ser una fracción pequeña del tiempo total
+- Cuando la operación tarda **menos de 10 μs**, el overhead domina y no hay mucho por ganar
+- Cuando tarda **más de 100 μs**, el overhead es menor al 1% y Assembly puede marcar diferencia real
 
-3. **Cuándo Assembly es útil**: 
-   - Cuando la lógica es **compleja** (loops, vectorización, etc.)
-   - Cuando se necesita **control preciso** del CPU
-   - Cuando se requiere **optimizaciones específicas** de la arquitectura
-
-### Overhead de ctypes
-
-El overhead real de ctypes es:
-- **~0.5-1.0 μs** por llamada FFI (marshalling de argumentos)
-- Este overhead es **fixo**, no depende de la lógica
-
-Para aplicaciones reales:
-- Si el cálculo toma **< 10 μs**: El overhead domina
-- Si el cálculo toma **> 100 μs**: El overhead es negligible (< 1%)
+La lección más importante: **medir antes de asumir**. Los supuestos sobre performance sin datos frecuentemente están equivocados.
 
 ---
 
@@ -365,9 +307,9 @@ $ make clean
 $ make DEBUG=1  # Compilar con símbolos de debug
 ```
 
-### Inspección del Stack Frame
+### Verificando el Stack Frame en Vivo
 
-#### Ejemplo 1: Ver el estado de la pila
+La parte más útil del TP fue poder pausar la ejecución dentro de `asm_float_to_int` y ver exactamente lo que predijimos en papel:
 
 ```gdb
 (gdb) break asm_float_to_int
@@ -381,12 +323,11 @@ $1 = (void *) 0x7fffffffe260
 0x7fffffffe280:	0x00007fffffffe2c0	0x0000555555554b15
 ```
 
-**Lectura**:
-- `[RBP+0x00]` = `0x00007fffffffe280` → RBP anterior
-- `[RBP+0x08]` = `0x0000555555554a4d` → Dirección de retorno (RIP)
-- `[RBP+0x10]` = `0x41267e2d` → **Nuestro float en stack** (42.3 en IEEE 754 single)
+- `[RBP+0x00]` = `0x00007fffffffe280` → RBP anterior ✓
+- `[RBP+0x08]` = `0x0000555555554a4d` → Dirección de retorno ✓
+- `[RBP+0x10]` = `0x41267e2d` → **nuestro float 42.3 en IEEE 754** ✓
 
-#### Ejemplo 2: Verificar el valor del parámetro
+Para confirmar el valor:
 
 ```gdb
 (gdb) print *(float*)($rbp + 0x10)
@@ -396,9 +337,7 @@ $2 = 42.2999992...
 $3 = 42
 ```
 
-Confirmado: El float 42.3 está en el stack en `0x10(%rbp)`, y su conversión a int es 42.
-
-#### Ejemplo 3: Ver el marco completo
+Todo coincide con el análisis teórico.
 
 ```gdb
 (gdb) info frame
@@ -425,8 +364,6 @@ Stack level 0, frame at 0x7fffffffe260:
 
 ## Resultados Finales
 
-### Ejecución Completa
-
 ```bash
 $ cd fase2
 $ python3 main.py
@@ -438,29 +375,10 @@ $ python3 main.py
 
 ## Conclusiones
 
-### Aprendizajes Clave
+Después de implementar el sistema completo, tres cosas quedaron claras:
 
-1. **Interoperabilidad de Lenguajes**
-   - Python puede llamar C mediante ctypes (FFI)
-   - C puede llamar Assembly mediante declaraciones `extern`
-   - La compatibilidad se logra mediante **Calling Conventions**
+**El Stack Frame deja de ser abstracto cuando lo ves en GDB.** Leer en la teoría que el primer parámetro está en `EBP+8` (o `RBP+0x10` en 64 bits) es una cosa. Pausar la ejecución dentro de `asm_float_to_int`, escribir `x/5gx $rbp` en GDB y ver el valor `0x41267e2d` exactamente donde predijiste que iba a estar es otra completamente distinta.
 
-2. **Stack Frame en x86-64 vs x86**
-   - **x86-64 (este proyecto)**: RBP, words de 8 bytes, primer parámetro en `0x10(%rbp)`
-   - **x86 (clase teórica)**: EBP, words de 4 bytes, primer parámetro en `0x08(%ebp)`
-   - El stack crece hacia direcciones menores en ambas arquitecturas
-   - Los parámetros se acceden con offsets relativos al Base Pointer
+**La convención de llamadas no es un detalle opcional.** Trabajar con tres lenguajes al mismo tiempo obliga a respetar el contrato de System V AMD64 ABI de forma estricta: qué va en cada registro, en qué orden, qué hay que preservar. Un byte en el lugar equivocado y el programa falla de formas difíciles de diagnosticar.
 
-3. **System V AMD64 ABI**
-   - 6 registros enteros: `%rdi`–`%r9`
-   - 8 registros XMM: `%xmm0`–`%xmm7`
-   - Parámetros adicionales van al stack (right-to-left)
-
-4. **Dummy Arguments**
-   - Técnica pedagógica válida para demostrar stack allocation
-   - No es práctica en código real (genera overhead innecesario)
-
-5. **Performance**
-   - El overhead de FFI (~1 μs) domina cuando la lógica es trivial
-   - Assembly es útil para cálculos complejos, no para conversiones simples
-   - Medir siempre: Los supuestos sobre performance frecuentemente son incorrectos
+**El benchmark arruinó los supuestos iniciales, y eso estuvo bien.** Antes de medir, asumíamos que C+ASM iba a ser notablemente más rápido que Python. El resultado fue el opuesto. El overhead fijo de ctypes es real y significativo para operaciones simples. Assembly tiene su lugar, pero ese lugar no es cualquier lugar — es donde la lógica es lo suficientemente compleja como para que el costo de cruzar la frontera valga la pena. La técnica de los dummy arguments en particular no es algo que usaríamos en producción; es una herramienta pedagógica para demostrar que el stack existe y que podemos controlarlo.
