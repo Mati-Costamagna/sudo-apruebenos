@@ -11,6 +11,8 @@
   - Davila Tomassi, Carlos Valentino
   - Sabena, Maria Pilar
 
+**Link del repositorio:** https://github.com/Mati-Costamagna/sudo-apruebenos/tree/stack_frame
+
 **Fecha:** Abril 2026
 
 > Este proyecto implementa una **aplicación de tres capas** para el procesamiento de datos económicos (Índice GINI del Banco Mundial). El enfoque principal es dominar la **interoperabilidad entre lenguajes** y la **Convención de Llamadas (Calling Convention) en arquitecturas x86-64**, con énfasis en el Stack Frame y paso de parámetros.
