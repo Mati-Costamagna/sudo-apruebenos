@@ -13,6 +13,8 @@
 
 **Fecha:** Abril 2026
 
+**Link al repositorio del TP:** https://github.com/Mati-Costamagna/sudo-apruebenos/tree/TP2
+
 ---
 
 ## Introducción
