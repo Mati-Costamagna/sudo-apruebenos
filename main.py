@@ -13,10 +13,9 @@ def get_gini_data():
         return None
 
 def cargar_libreria():
-    
     lib = ctypes.CDLL('./libgini.so')
 
-    # Definimos los tipos de entrada y salida para que coincidan con C 
+    # Interfaz limpia con C: Python no ve los dummies
     lib.float_to_int.argtypes = [ctypes.c_float]
     lib.float_to_int.restype = ctypes.c_int
 
@@ -30,31 +29,27 @@ def procesar():
     lib = cargar_libreria()
 
     if data and lib:
-        #Filtramos los datos para que solo sean de "Argentina" y tengan valor
         datos_argentina = [
             entry for entry in data[1] 
             if entry.get('country', {}).get('value') == "Argentina" and entry.get('value') is not None
         ]
 
-        #Ordenamos por año (de más reciente a más antiguo)
         datos_argentina.sort(key=lambda x: x['date'], reverse=True)
+        top_5 = datos_argentina[:5]
 
-        #Tomamos solo los primeros 5 (los más recientes)
-        #top_5 = datos_argentina[:5]
-
-        print(f"\nResultados para: Argentina (Últimos 5 años disponibles)")
-        print(f"{'AÑO':<6} | {'GINI ORIGINAL':<15} | {'ENTERO':<12} | {'SUMA +1':<10}")
-        print("-" * 55)
+        print(f"\nResultados para: Argentina (Últimos 5 años) - FLUJO COMPLETO (Python -> C -> ASM)")
+        print(f"{'AÑO':<6} | {'GINI ORIGINAL':<15} | {'ENTERO (C/ASM)':<14} | {'SUMA +1 (C/ASM)':<10}")
+        print("-" * 70)
         
         for entry in top_5:
             valor_float = entry.get('value')
             anio = entry.get('date')
 
+            # Llamamos a C, que internamente llama a Assembler
             gini_int = lib.float_to_int(valor_float)
-            
             gini_final = lib.sumar_uno(gini_int)
 
-            print(f"{anio:<6} | {valor_float:<15.2f} | {gini_int:<12} | {gini_final:<10}")
+            print(f"{anio:<6} | {valor_float:<15.2f} | {gini_int:<14} | {gini_final:<10}")
 
 if __name__ == "__main__":
     procesar()
