@@ -1,0 +1,168 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 800" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow-right" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#333" />
+    </marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#dc2626" />
+    </marker>
+    <linearGradient id="grad-memory" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#dbeafe"/>
+      <stop offset="100%" stop-color="#bfdbfe"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1000" height="800" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="500" y="40" text-anchor="middle" font-size="24" font-weight="bold" fill="#1e293b">
+    Stack Frame Layout: asm_float_to_int()
+  </text>
+  <text x="500" y="65" text-anchor="middle" font-size="12" fill="#64748b">
+    System V AMD64 ABI - Offset relativo a %rbp
+  </text>
+
+  <!-- LEFT SIDE: Memory layout diagram -->
+  <g id="stack-layout">
+    <!-- Title for left side -->
+    <text x="150" y="100" font-size="14" font-weight="bold" fill="#2563eb">
+      LAYOUT DE MEMORIA
+    </text>
+
+    <!-- Stack cells -->
+    <!-- Cell 0x18(%rbp) - Next param (for context) -->
+    <rect x="50" y="120" width="200" height="35" fill="#f0f9ff" stroke="#3b82f6" stroke-width="1"/>
+    <text x="60" y="138" font-size="11" font-weight="bold" fill="#1e40af">0x18(%rbp)</text>
+    <text x="160" y="138" text-anchor="middle" font-size="10" fill="#64748b">Siguiente param</text>
+
+    <!-- Cell 0x10(%rbp) - gini_value (RED - TARGET) -->
+    <rect x="50" y="155" width="200" height="50" fill="#fee2e2" stroke="#dc2626" stroke-width="3"/>
+    <text x="60" y="175" font-size="12" font-weight="bold" fill="#991b1b">0x10(%rbp) ← AQUÍ</text>
+    <text x="160" y="175" text-anchor="middle" font-size="10" fill="#7f1d1d" font-weight="bold">gini_value (float)</text>
+    <text x="160" y="190" text-anchor="middle" font-size="9" fill="#7f1d1d">Parámetro 15º - EN STACK</text>
+
+    <!-- Cell 0x08(%rbp) - Return Address -->
+    <rect x="50" y="205" width="200" height="35" fill="#e0e7ff" stroke="#4f46e5" stroke-width="2"/>
+    <text x="60" y="223" font-size="11" font-weight="bold" fill="#312e81">0x08(%rbp)</text>
+    <text x="160" y="223" text-anchor="middle" font-size="10" fill="#312e81">[RIP] Dirección de retorno</text>
+
+    <!-- Cell 0x00(%rbp) - Previous RBP -->
+    <rect x="50" y="240" width="200" height="35" fill="#ddd6fe" stroke="#7c3aed" stroke-width="2"/>
+    <text x="60" y="258" font-size="11" font-weight="bold" fill="#4c1d95">0x00(%rbp)</text>
+    <text x="160" y="258" text-anchor="middle" font-size="10" fill="#4c1d95">[RBP] RBP anterior</text>
+
+    <!-- Cell -0x08(%rbp) -->
+    <rect x="50" y="275" width="200" height="35" fill="#f5f3ff" stroke="#a78bfa" stroke-width="1"/>
+    <text x="60" y="293" font-size="11" fill="#6d28d9">-0x08(%rbp)</text>
+    <text x="160" y="293" text-anchor="middle" font-size="9" fill="#6d28d9">Local variables</text>
+
+    <!-- Arrow pointing to RBP -->
+    <line x1="270" y1="258" x2="320" y2="258" stroke="#7c3aed" stroke-width="2" marker-end="url(#arrow-right)"/>
+    <text x="330" y="263" font-size="10" fill="#7c3aed" font-weight="bold">%rbp</text>
+
+    <!-- Arrow pointing to gini_value -->
+    <line x1="270" y1="180" x2="320" y2="180" stroke="#dc2626" stroke-width="3" marker-end="url(#arrow-red)"/>
+    <text x="330" y="185" font-size="10" fill="#dc2626" font-weight="bold">Argumento</text>
+  </g>
+
+  <!-- RIGHT SIDE: Registers diagram -->
+  <g id="registers-diagram">
+    <text x="750" y="100" font-size="14" font-weight="bold" fill="#059669">
+      REGISTROS (LLENOS)
+    </text>
+
+    <!-- Integer registers box -->
+    <rect x="650" y="120" width="300" height="100" fill="#d1fae5" stroke="#059669" stroke-width="2" rx="5"/>
+    <text x="800" x-anchor="middle" y="142" font-size="12" font-weight="bold" fill="#047857">
+      Registros Enteros (6/6 LLENOS)
+    </text>
+    <text x="665" y="162" font-size="10" fill="#065f46">%rdi=0   %rsi=0   %rdx=0</text>
+    <text x="665" y="180" font-size="10" fill="#065f46">%rcx=0   %r8=0    %r9=0</text>
+    <text x="665" y="198" font-size="10" fill="#0d9488" font-weight="bold">Dummy Arguments</text>
+
+    <!-- XMM registers box -->
+    <rect x="650" y="230" width="300" height="100" fill="#d1fae5" stroke="#059669" stroke-width="2" rx="5"/>
+    <text x="800" text-anchor="middle" y="252" font-size="12" font-weight="bold" fill="#047857">
+      Registros XMM (8/8 LLENOS)
+    </text>
+    <text x="665" y="272" font-size="10" fill="#065f46">%xmm0-3: 0.0 | %xmm4-7: 0.0</text>
+    <text x="665" y="290" font-size="10" fill="#065f46">Total: 8 doubles</text>
+    <text x="665" y="308" font-size="10" fill="#0d9488" font-weight="bold">Dummy Arguments</text>
+  </g>
+
+  <!-- BOTTOM: Explanation boxes -->
+  <g id="explanation">
+    <text x="50" y="370" font-size="13" font-weight="bold" fill="#1e293b">
+      CÁLCULO DEL OFFSET: ¿Por qué 0x10(%rbp)?
+    </text>
+
+    <!-- Box 1: pushq %rbp -->
+    <rect x="50" y="385" width="140" height="80" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5" rx="4"/>
+    <text x="60" y="402" font-size="10" font-weight="bold" fill="#1e40af">pushq %rbp</text>
+    <text x="60" y="418" font-size="9" fill="#1e40af">RSP: 1000h → 0FF8h</text>
+    <text x="60" y="432" font-size="9" fill="#1e40af">Guarda RBP anterior</text>
+    <text x="60" y="446" font-size="9" fill="#1e40af">Ocupa 8 bytes</text>
+
+    <!-- Arrow -->
+    <line x1="190" y1="425" x2="220" y2="425" stroke="#333" stroke-width="2" marker-end="url(#arrow-right)"/>
+
+    <!-- Box 2: movq %rsp, %rbp -->
+    <rect x="220" y="385" width="140" height="80" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" rx="4"/>
+    <text x="230" y="402" font-size="10" font-weight="bold" fill="#166534">movq %rsp, %rbp</text>
+    <text x="230" y="418" font-size="9" fill="#166534">RBP = 0FF8h</text>
+    <text x="230" y="432" font-size="9" fill="#166534">RSP sigue = 0FF8h</text>
+    <text x="230" y="446" font-size="9" fill="#166534">Crea nuevo frame</text>
+
+    <!-- Arrow -->
+    <line x1="360" y1="425" x2="390" y2="425" stroke="#333" stroke-width="2" marker-end="url(#arrow-right)"/>
+
+    <!-- Box 3: Stack grows down -->
+    <rect x="390" y="385" width="140" height="80" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" rx="4"/>
+    <text x="400" y="402" font-size="10" font-weight="bold" fill="#92400e">Parámetros en Stack</text>
+    <text x="400" y="418" font-size="9" fill="#92400e">RBP + 0x08 = RIP</text>
+    <text x="400" y="432" font-size="9" fill="#92400e">RBP + 0x10 = Param 1</text>
+    <text x="400" y="446" font-size="9" fill="#92400e">RBP + 0x18 = Param 2</text>
+
+    <!-- Math explanation -->
+    <rect x="550" y="385" width="400" height="80" fill="#f8f4ff" stroke="#a855f7" stroke-width="2" rx="4"/>
+    <text x="560" y="402" font-size="11" font-weight="bold" fill="#6b21a8">MATEMÁTICA:</text>
+    <text x="560" y="420" font-size="10" fill="#6b21a8">• RBP anterior: 8 bytes → 0x00(%rbp)</text>
+    <text x="560" y="436" font-size="10" fill="#6b21a8">• RIP (return): 8 bytes → 0x08(%rbp)</text>
+    <text x="560" y="452" font-size="10" fill="#6b21a8" font-weight="bold">• gini_value: offset = 0x08 + 0x08 = 0x10(%rbp) ✓</text>
+
+    <!-- Assembly code section -->
+    <text x="50" y="510" font-size="13" font-weight="bold" fill="#1e293b">
+      CÓDIGO ASSEMBLY:
+    </text>
+
+    <rect x="50" y="525" width="900" height="230" fill="#1e293b" stroke="#64748b" stroke-width="1" rx="4" font-family="monospace"/>
+    <text x="70" y="548" font-size="11" fill="#22c55e" font-weight="bold">
+      asm_float_to_int:
+    </text>
+    <text x="70" y="568" font-size="10" fill="#60a5fa">
+      pushq   %rbp                # Guardar RBP anterior en stack (offset -8)
+    </text>
+    <text x="70" y="588" font-size="10" fill="#60a5fa">
+      movq    %rsp, %rbp          # RBP = RSP actual (crea nuevo frame)
+    </text>
+    <text x="70" y="608" font-size="10" fill="#fbbf24">
+      movss   0x10(%rbp), %xmm0   # ← ACCEDE A PARÁMETRO EN STACK (offset 0x10)
+    </text>
+    <text x="70" y="628" font-size="10" fill="#60a5fa">
+      cvttss2si %xmm0, %eax       # Convertir float → int (truncar)
+    </text>
+    <text x="70" y="648" font-size="10" fill="#60a5fa">
+      popq    %rbp                # Restaurar RBP anterior
+    </text>
+    <text x="70" y="668" font-size="10" fill="#60a5fa">
+      ret                         # Saltar a dirección guardada en 0x08(%rbp)
+    </text>
+
+    <!-- Explanation text -->
+    <rect x="50" y="765" width="900" height="30" fill="#fef3c7" stroke="#d97706" stroke-width="1" rx="3"/>
+    <text x="70" y="785" font-size="10" fill="#92400e" font-weight="bold">
+      Línea clave: movss 0x10(%rbp), %xmm0 → Lee el float desde la posición RBP+16 bytes en el stack
+    </text>
+  </g>
+</svg>
