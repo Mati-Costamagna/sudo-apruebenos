@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#16a34a"/>
+    </marker>
+    <linearGradient id="grad-python" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.05"/>
+    </linearGradient>
+    <linearGradient id="grad-c" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.05"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="600" fill="#fafafa" rx="12"/>
+  <text x="400" y="40" text-anchor="middle" font-size="20" font-weight="bold" fill="#1e293b">Flujo de Datos Fase 1: Abstraccion de Alto Nivel</text>
+  <text x="400" y="60" text-anchor="middle" font-size="12" fill="#64748b">Interoperabilidad mediante ctypes y Objetos Python</text>
+
+  <!-- COLUMN: PYTHON (VM) -->
+  <rect x="50" y="90" width="300" height="480" rx="10" fill="url(#grad-python)" stroke="#3b82f6" stroke-width="2"/>
+  <text x="200" y="115" text-anchor="middle" font-size="14" font-weight="bold" fill="#2563eb">PYTHON VM (Objetos en Memoria)</text>
+
+  <!-- Python Object -->
+  <rect x="80" y="140" width="240" height="80" rx="8" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="200" y="165" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e40af">PyObject (float)</text>
+  <text x="200" y="185" text-anchor="middle" font-size="10" fill="#1e40af">value: 42.70</text>
+  <text x="200" y="200" text-anchor="middle" font-size="10" fill="#1e40af">ref_count: 1</text>
+
+  <!-- Ctypes bridge -->
+  <rect x="80" y="260" width="240" height="100" rx="8" fill="#bfdbfe" stroke="#2563eb" stroke-width="2"/>
+  <text x="200" y="285" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e40af">Ctypes Wrapper</text>
+  <text x="200" y="305" text-anchor="middle" font-size="10" fill="#1e40af">1. Extrae valor crudo</text>
+  <text x="200" y="325" text-anchor="middle" font-size="10" fill="#1e40af">2. Convierte a C float</text>
+  <text x="200" y="345" text-anchor="middle" font-size="10" fill="#1e40af">3. Prepara Frame de llamada</text>
+
+  <!-- Result object -->
+  <rect x="80" y="450" width="240" height="60" rx="8" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="200" y="475" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e40af">PyObject (int)</text>
+  <text x="200" y="495" text-anchor="middle" font-size="10" fill="#1e40af">value: 42</text>
+
+  <!-- COLUMN: C (Shared Library) -->
+  <rect x="450" y="90" width="300" height="480" rx="10" fill="url(#grad-c)" stroke="#f59e0b" stroke-width="2"/>
+  <text x="600" y="115" text-anchor="middle" font-size="14" font-weight="bold" fill="#b45309">C (libgini.so)</text>
+
+  <!-- C Stack/Local -->
+  <rect x="480" y="260" width="240" height="100" rx="8" fill="#fef3c7" stroke="#f59e0b"/>
+  <text x="600" y="285" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400e">float_to_int(float)</text>
+  <text x="600" y="310" text-anchor="middle" font-size="10" fill="#92400e">Argumento recibido</text>
+  <text x="600" y="330" text-anchor="middle" font-size="10" fill="#92400e" font-family="monospace">return (int)value;</text>
+
+  <!-- Arrows -->
+  <path d="M 200 220 L 200 260" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+  
+  <path d="M 320 310 L 465 310" fill="none" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="390" y="300" text-anchor="middle" font-size="10" fill="#333">Llamada FFI</text>
+
+  <path d="M 480 340 L 400 380 L 320 340" fill="none" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="4" marker-end="url(#arrow-green)"/>
+  <text x="400" y="395" text-anchor="middle" font-size="10" fill="#16a34a">Retorno de valor</text>
+
+  <path d="M 200 360 L 200 450" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+  <text x="210" y="410" text-anchor="start" font-size="9" fill="#2563eb">Boxing (C int -> PyObject)</text>
+
+</svg>

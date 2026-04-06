@@ -1,45 +1,39 @@
-# Informe del Trabajo Práctico: Índice GINI y Convención de Llamadas
+# Informe del Trabajo Practico: Índice GINI y Convención de Llamadas
 
 **Asignatura:** Sistemas de Computación  
-**Profesor:** Miguel Ángel Solinas (UNC)  
-**Estudiante:** Matías Costamagna  
+
+**Profesores:** 
+  - Jorge, Javier Alejandro
+  - Solinas, Miguel Angel
+
+**Estudiantes:** 
+  - Costamagna, Matias
+  - Davila Tomassi, Carlos Valentino
+  - Sabena, Maria Pilar
+
 **Fecha:** Abril 2026
 
 > Este proyecto implementa una **aplicación de tres capas** para el procesamiento de datos económicos (Índice GINI del Banco Mundial). El enfoque principal es dominar la **interoperabilidad entre lenguajes** y la **Convención de Llamadas (Calling Convention) en arquitecturas x86-64**, con énfasis en el Stack Frame y paso de parámetros.
 
 ---
 
-## 📋 Tabla de Contenidos
-
-1. [Objetivos del Trabajo](#objetivos)
-2. [Arquitectura del Sistema](#arquitectura)
-3. [Fase 1: Integración Python + C](#fase-1)
-4. [Fase 2: Stack Frame y Assembly](#fase-2)
-5. [Stack Frame Layout (Análisis Detallado)](#stack-frame)
-6. [Casos de Prueba](#casos-prueba)
-7. [Análisis de Performance](#performance)
-8. [Debugging con GDB](#gdb)
-9. [Conclusiones](#conclusiones)
-
----
-
-## 🎯 Objetivos del Trabajo {#objetivos}
+## Objetivos del Trabajo
 
 ### Objetivo General
 Implementar una calculadora de índices GINI que integre **múltiples niveles de abstracción** (Python, C, Assembly) para comprender cómo los lenguajes de alto nivel se mapean a instrucciones de CPU.
 
 ### Objetivos Específicos
-1. ✅ **Consumir datos externos** mediante API REST (Banco Mundial)
-2. ✅ **Integrar C desde Python** usando FFI (ctypes)
-3. ✅ **Implementar Stack Frame** forzando parámetros al stack
-4. ✅ **Dominar convención de llamadas** System V AMD64 ABI
-5. ✅ **Acceder a parámetros** mediante desplazamientos relativos a %rbp
-6. ✅ **Debuggear bajo nivel** con GDB inspeccionando memoria
-7. ✅ **Comparar performance** entre las tres implementaciones
+1. **Consumir datos externos** mediante API REST (Banco Mundial)
+2. **Integrar C desde Python** usando FFI (ctypes)
+3. **Implementar Stack Frame** forzando parámetros al stack
+4. **Dominar convención de llamadas** System V AMD64 ABI
+5. **Acceder a parámetros** mediante desplazamientos relativos a %rbp
+6. **Debuggear bajo nivel** con GDB inspeccionando memoria
+7. **Comparar performance** entre las tres implementaciones
 
 ---
 
-## 🏗️ Arquitectura del Sistema {#arquitectura}
+## Arquitectura del Sistema
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -60,14 +54,14 @@ Implementar una calculadora de índices GINI que integre **múltiples niveles de
 ┌─────────────────────────────────────────────────────────────┐
 │              Assembly x86-64 (Bajo Nivel)                   │
 │    • Acceso directo a Stack Frame                           │
-│    • Manipulación de registros (%rax, %xmm0, etc)          │
-│    • Instrucciones de CPU (cvttss2si, etc)                 │
+│    • Manipulación de registros (%rax, %xmm0, etc)           │
+│    • Instrucciones de CPU (cvttss2si, etc)                  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📍 Fase 1: Integración Python + C {#fase-1}
+## Fase 1: Integración Python + C
 
 ### Descripción
 
@@ -131,7 +125,7 @@ AÑO    | GINI ORIGINAL   | ENTERO (C) | SUMA +1 (C)
 
 ---
 
-## 🔧 Fase 2: Stack Frame y Convención de Llamadas {#fase-2}
+## Fase 2: Stack Frame y Convención de Llamadas {#fase-2}
 
 ### Descripción
 
@@ -207,22 +201,46 @@ AÑO    | GINI ORIGINAL   | ENTERO (C/ASM) | SUMA +1 (C/ASM)
 
 ---
 
-## 📐 Stack Frame Layout (Análisis Detallado) {#stack-frame}
+## Stack Frame Layout (Análisis Detallado)
+
+### Nota sobre Arquitectura
+
+La **clase teórica (Clase_1_Call_Convention.pdf)** utiliza **x86 de 32 bits** con **EBP** (Extended Base Pointer):
+```asm
+push ebp          ; Guardar 4 bytes (32-bit)
+mov  ebp, esp
+```
+
+Este proyecto implementa **x86-64 de 64 bits** con **RBP** (64-bit Base Pointer):
+```asm
+pushq %rbp        ; Guardar 8 bytes (64-bit) - la 'q' significa "quad word"
+movq  %rsp, %rbp
+```
+
+**Diferencias**:
+| Aspecto | x86 (32-bit) | x86-64 (64-bit) |
+|---------|--------------|-----------------|
+| Registro Base | **EBP** | **RBP** |
+| Tamaño guardarRBP | 4 bytes | 8 bytes |
+| Offset 1er parámetro | `EBP + 8` | **`RBP + 16` (0x10)** |
+| ISA | IA-32 | AMD64/System V |
+
+El resto de la lógica es equivalente, solo que con tamaños de palabra (word size) diferentes.
 
 ### Diagrama Interactivo
 ![Diagrama del Stack Frame](fase2/diagrama_stack.svg)
 
-### Cálculo del Offset: ¿Por qué `0x10(%rbp)`?
+### Cálculo del Offset: ¿Por qué `0x10(%rbp)`? (x86-64)
 
 Cuando entra la función `asm_float_to_int()`, el stack se ve así:
 
 ```
 ANTES de pushq %rbp:          DESPUÉS de pushq %rbp:        DESPUÉS de movq %rsp, %rbp:
 ┌───────────────────┐         ┌───────────────────┐         ┌───────────────────┐
-│ gini_value (4B)   │ RSP+8    │ gini_value (4B)   │         │ gini_value (4B)   │
+│ gini_value (4B)   │ RSP+8   │ gini_value (4B)   │         │ gini_value (4B)   │
 ├───────────────────┤         ├───────────────────┤         ├───────────────────┤
-│ RIP (8B) ← CALL   │ RSP      │ RIP (8B) ← CALL   │ RSP+8   │ RIP (8B) ← CALL   │ 0x08(%rbp)
-│ (dirección retorno)         │ (dirección retorno)         │ (dirección retorno)│
+│ RIP (8B) ← CALL   │ RSP     │ RIP (8B) ← CALL   │ RSP+8   │ RIP (8B) ← CALL   │ 0x08(%rbp)
+│(dirección retorno)|         │(dirección retorno)|         │(dirección retorno)│
 ├───────────────────┤         ├───────────────────┤         ├───────────────────┤
 │       ⬇           │         │ RBP_anterior (8B) │ RSP     │ RBP_anterior (8B) │ 0x00(%rbp)
 │      RSP          │         │      ⬇            │         │      ⬇            │ ← %rbp
@@ -230,19 +248,24 @@ ANTES de pushq %rbp:          DESPUÉS de pushq %rbp:        DESPUÉS de movq %r
                               └───────────────────┘         └───────────────────┘
 ```
 
-**Cálculo del desplazamiento**:
+**Cálculo del desplazamiento (x86-64)**:
 
 | Concepto | Tamaño | Offset desde RBP | Contenido |
 |----------|--------|------------------|-----------|
-| RBP anterior (guardado por `pushq`) | 8 bytes | `0x00(%rbp)` | Dirección de RBP anterior |
-| RIP (guardado por `call`) | 8 bytes | `0x08(%rbp)` | Dirección de retorno |
+| RBP anterior (guardado por `pushq %rbp`) | **8 bytes** | `0x00(%rbp)` | Dirección de RBP anterior |
+| RIP (guardado por `call`) | **8 bytes** | `0x08(%rbp)` | Dirección de retorno |
 | **Primer parámetro en stack** | - | **`0x10(%rbp)`** | **gini_value (float)** ✓ |
 | Segundo parámetro en stack | - | `0x18(%rbp)` | (siguiente) |
 
-**Matemática**:
-- `0x00` = RBP anterior (8 bytes = 0x08)
-- `0x08` = RIP (8 bytes = 0x08)  
-- **`0x10`** = RBP + 0x08 + 0x08 = 0x10 ✓
+**Matemática (x86-64 de 64 bits)**:
+- `0x00` = RBP anterior: 8 bytes = 0x08
+- `0x08` = RIP (return address): 8 bytes = 0x08
+- **`0x10` (16 en decimal)** = 0x08 + 0x08 = 0x10 ✓
+
+**Comparación con x86 (32 bits)** (como en la clase):
+- `0x00` = EBP anterior: 4 bytes = 0x04
+- `0x04` = RIP (return address): 4 bytes = 0x04
+- **`0x08` (8 en decimal)** = 0x04 + 0x04 = 0x08 (primer parámetro en EBP+8)
 
 ### Instrucciones Clave
 
@@ -262,19 +285,19 @@ ret                             # Salta a dirección guardada en [RSP]
 
 ---
 
-## ✅ Casos de Prueba {#casos-prueba}
+## Casos de Prueba
 
 ### Tabla de Pruebas
 
-| # | Entrada (float) | Esperado (int) | Actual (int) | Suma +1 | Estado |
-|---|-----------------|----------------|--------------|---------|--------|
-| 1 | 42.3 | 42 | 42 | 43 | ✅ |
-| 2 | 42.99 | 42 | 42 | 43 | ✅ (trunca) |
-| 3 | 3.14159 | 3 | 3 | 4 | ✅ |
-| 4 | 0.5 | 0 | 0 | 1 | ✅ (trunca) |
-| 5 | -15.7 | -15 | -15 | -14 | ✅ (trunca hacia 0) |
-| 6 | 0.0 | 0 | 0 | 1 | ✅ |
-| 7 | 99.99 | 99 | 99 | 100 | ✅ (trunca) |
+| # | Entrada (float) | Esperado (int) | Actual (int) | Suma +1 |
+|---|-----------------|----------------|--------------|---------|
+| 1 | 42.3 | 42 | 42 | 43 |
+| 2 | 42.99 | 42 | 42 | 43 |
+| 3 | 3.14159 | 3 | 3 | 4 |
+| 4 | 0.5 | 0 | 0 | 1 |
+| 5 | -15.7 | -15 | -15 | -14 |
+| 6 | 0.0 | 0 | 0 | 1 |
+| 7 | 99.99 | 99 | 99 | 100 |
 
 ### Información sobre Truncamiento
 
@@ -287,7 +310,7 @@ Este es el comportamiento esperado de **truncamiento**, no redondeo.
 
 ---
 
-## 📊 Análisis de Performance {#performance}
+## Análisis de Performance
 
 ### Benchmark: Python vs C vs C+Assembly
 
@@ -330,7 +353,7 @@ Para aplicaciones reales:
 
 ---
 
-## 🐛 Debugging con GDB {#gdb}
+## Debugging con GDB
 
 ### Preparación
 
@@ -371,7 +394,7 @@ $2 = 42.2999992...
 $3 = 42
 ```
 
-✅ Confirmado: El float 42.3 está en el stack en `0x10(%rbp)`, y su conversión a int es 42.
+Confirmado: El float 42.3 está en el stack en `0x10(%rbp)`, y su conversión a int es 42.
 
 #### Ejemplo 3: Ver el marco completo
 
@@ -398,7 +421,7 @@ Stack level 0, frame at 0x7fffffffe260:
 
 ---
 
-## 📈 Resultados Finales {#resultados}
+## Resultados Finales
 
 ### Ejecución Completa
 
@@ -409,19 +432,9 @@ $ python3 main.py
 
 ![Resultado Ejecución](fase2/assets/output.png)
 
-### Validación
-
-- ✅ **API:** Datos del Banco Mundial consultados correctamente
-- ✅ **Python:** Parseo JSON correcto
-- ✅ **ctypes:** Conversión de tipos correcta
-- ✅ **C Wrapper:** Agregación de dummies correcta
-- ✅ **Assembly:** Acceso al stack en `0x10(%rbp)` correcto
-- ✅ **Conversión:** float→int trunca correctamente
-- ✅ **Suma:** int+1 funciona correctamente
-
 ---
 
-## 🎓 Conclusiones {#conclusiones}
+## Conclusiones
 
 ### Aprendizajes Clave
 
@@ -430,10 +443,11 @@ $ python3 main.py
    - C puede llamar Assembly mediante declaraciones `extern`
    - La compatibilidad se logra mediante **Calling Conventions**
 
-2. **Stack Frame en x86-64**
-   - El stack crece hacia direcciones menores
-   - Los parámetros se acceden con offsets relativos a `%rbp`
-   - El offset del primer parámetro es `0x10(%rbp)` (RBP_anterior + RIP)
+2. **Stack Frame en x86-64 vs x86**
+   - **x86-64 (este proyecto)**: RBP, words de 8 bytes, primer parámetro en `0x10(%rbp)`
+   - **x86 (clase teórica)**: EBP, words de 4 bytes, primer parámetro en `0x08(%ebp)`
+   - El stack crece hacia direcciones menores en ambas arquitecturas
+   - Los parámetros se acceden con offsets relativos al Base Pointer
 
 3. **System V AMD64 ABI**
    - 6 registros enteros: `%rdi`–`%r9`
@@ -448,35 +462,3 @@ $ python3 main.py
    - El overhead de FFI (~1 μs) domina cuando la lógica es trivial
    - Assembly es útil para cálculos complejos, no para conversiones simples
    - Medir siempre: Los supuestos sobre performance frecuentemente son incorrectos
-
-### Aplicaciones Prácticas
-
-- **Extensiones C para Python**: NumPy, pandas, etc. usan estas técnicas
-- **Bibliotecas de sistema**: Acceso a syscalls desde Python (ctypes)
-- **Optimización crítica**: Loops computacionalmente intensivos en Assembly
-- **Seguridad**: Análisis de stack frames para detectar exploits
-
-### Repositorio
-
-```bash
-$ git clone <repo>
-$ cd SdC
-$ cd fase1 && make all && python3 main.py
-$ cd ../fase2 && make all && python3 main.py
-$ python3 benchmark.py
-```
-
----
-
-## 📚 Referencias
-
-- **Calling Conventions**: https://eli.thegreenplace.net/2011/09/06/stack-frame-layout-on-x86-64/
-- **System V AMD64 ABI**: https://refspecs.linuxbase.org/elf/x86_64-abi-0.99.pdf
-- **Assembly x86-64**: https://www.pcasm-book-spanish.pdf
-- **GDB Debugging**: https://sourceware.org/gdb/documentation/
-- **ctypes**: https://docs.python.org/3/library/ctypes.html
-
----
-
-**Última actualización:** 2026-04-06  
-**Estado:** ✅ Completo
