@@ -284,3 +284,55 @@ La implicacion de seguridad es significativa: el CSME tiene mas privilegios que 
 - **Arranque extremadamente rapido**: en algunos sistemas logra tiempos de POST menores a 1 segundo, ya que elimina toda la inicializacion redundante que el BIOS tradicional hace por compatibilidad historica.
 - **Superficie de ataque reducida**: al eliminar codigo propietario y reducir el tamaño del firmware, se reduce la cantidad de vectores de ataque posibles antes de que el OS tome el control.
 - **Longevidad**: permite seguir usando hardware antiguo con firmware actualizado y seguro, sin depender del soporte del fabricante original.
+
+---
+
+## 5. Hello World en Modo Real
+
+### El codigo `main.S`
+
+Para personalizar un poco la actividad e intentar distinguirnos del resto, le hicimos una pequeña modificacion al codigo de la presentacion:
+
+```asm
+.code16                     # Codigo de 16 bits (modo real)
+    mov $msg, %si           # SI apunta al string a imprimir
+    mov $0x0e, %ah          # Función 0x0e de la INT 10h: Teletype Output
+loop:
+    lodsb
+    or %al, %al             # Carga byte en AL desde [SI], incrementa SI
+    jz halt
+    int $0x10               # Setea flags; si AL == 0 → fin del string
+    jmp loop                # Llamada a la BIOS: imprime caracter en AL
+halt:
+    hlt
+msg:
+    .asciz "hello SdeC"     # String terminado en '\0'
+```
+
+Este programa ilustra el modelo de programacion del modo real: para imprimir un caracter se usa la interrupcion `INT 0x10`, que es una de las rutinas del BIOS residente en ROM. El BIOS es esencialmente una biblioteca de funciones de bajo nivel accesible solo a traves de interrupciones de software, con argumentos pasados por registros. Esta interfaz existe desde el IBM PC original y es la razon por la que el BIOS solo puede usarse en modo real: las rutinas fueron escritas para operar con el modelo de segmentacion de 16 bits.
+ 
+Una vez que el procesador pase a modo protegido, estas rutinas del BIOS dejan de ser accesibles. El kernel debe implementar sus propios drivers para cada dispositivo, empezando por la salida de video mediante escritura directa en la memoria VGA (`0xB8000`).
+
+### El script de linker `link.ld`
+ 
+```ld
+SECTIONS {
+    . = 0x7c00;            /* El BIOS carga el MBR en 0x7C00 */
+    .text : {
+        __start = .;
+        *(.text)
+        . = 0x1FE;         /* Posicionarse en el byte 510 */
+        SHORT(0xAA55)      /* Boot signature */
+    }
+}
+```
+ 
+### Compilar y ejecutar
+ 
+```bash
+as -g -o src/main.o src/main.S
+ld --oformat binary -o src/main.img -T src/link.ld src/main.o
+qemu-system-x86_64 -hda src/main.img
+```
+
+![Hello SdeC](assets/mbr_hello_world.png)
