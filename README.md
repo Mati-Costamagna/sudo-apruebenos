@@ -150,3 +150,68 @@ Sin embargo, al intentar bootear desde el pendrive, la UEFI de la maquina no det
 
 Luego de invesigar (un laaargo rato), encontramos que la razon es conceptual y no un error del procedimiento: una imagen MBR con bootloader de 16 bits no es reconocida como dispositivo booteable por UEFI.
 El estandar UEFI espera una estructura completamente distinta, pero mas adelante se abordara este tema.
+
+---
+
+## 3. Linker
+
+### ¿Que es un linker y que hace?
+
+Un **linker** (enlazador) es una herramienta que combina uno o mas archivos objeto (`.o`) generados por el ensamblador o compilador, resuelve las referencias simbolicas entre ellos y produce un ejecutable final o imagen binaria.
+ 
+Sus tareas principales son:
+ 
+- **Resolucion de simbolos**: conecta cada referencia a una etiqueta con su definicion real.
+- **Relocalizacion**: ajusta las direcciones de memoria de instrucciones y datos segun donde se cargara el programa. Esta es la tarea más critica para codigo bare-metal.
+- **Combinacion de secciones**: une secciones `.text`, `.data`, `.bss` de distintos objetos.
+- **Formato de salida**: puede producir ELF, PE, binario plano, etc.
+En desarrollo de software convencional el linker trabaja en conjunto con el sistema operativo, que carga los ejecutables en memoria y ajusta las relocalizaciones en tiempo de carga. En programacion bare-metal no hay sistema operativo que ayude: el linker debe producir un binario que funcione correctamente en la direccion exacta donde el hardware lo colocara.
+
+### ¿Que es la direccion `0x7C00` en el script del linker?
+ 
+```ld
+SECTIONS {
+    . = 0x7c00;
+    .text : {
+        __start = .;
+        *(.text)
+        . = 0x1FE;
+        SHORT(0xAA55)
+    }
+}
+```
+
+`0x7C00` es la **direccion fisica donde el BIOS carga el sector de arranque (MBR) en RAM**. El valor no es arbitrario: en el IBM PC original con 32 KB de RAM, el equipo de IBM decidio ubicar el bootloader al final de la memoria disponible para maximizar el espacio libre contiguo hacia arriba para el sistema operativo. `0x7C00` es `32KB - 1KB - 512 bytes`: se reservo 1 KB para el stack del bootloader entre `0x7C00` y `0x7E00`, y el codigo ocupa los 512 bytes desde `0x7C00`.
+ 
+Es **necesario** indicarsela al linker porque el codigo ensamblado contiene referencias absolutas (etiquetas, saltos, datos). Si el linker no sabe que el codigo se ejecutara desde `0x7C00`, calculara mal todas las direcciones absolutas. Por ejemplo, si la etiqueta `msg` esta a 20 bytes del inicio del codigo, su direccion real en ejecución sera `0x7C00 + 20 = 0x7C14`, no `0x14`. Sin este dato, el bootloader intentaria leer el string de la direccion `0x14`, que contiene basura, y el resultado sería silenciosamente incorrecto.
+
+### Comparacion `objdump` vs `hd`
+ 
+Compilar y linkear el hello world:
+ 
+```bash
+as -g -o src/main.o src/main.S
+ld --oformat binary -o src/main.img -T src/link.ld src/main.o
+```
+ 
+Ver el desensamblado con direcciones ajustadas a `0x7C00`:
+```bash
+objdump -D -b binary -m i8086 -M addr16,data16 src/main.img
+```
+
+![Desensamblado](assets/objdump.png)
+ 
+Ver el volcado hexadecimal crudo del archivo:
+```bash
+hd src/main.img
+```
+
+![Imagen](assets/hd_image.png)
+ 
+La comparacion entre ambas herramientas es reveladora. `objdump` muestra las instrucciones con sus **direcciones logicas** (empezando en `0x7C00`), tal como las ve el procesador en ejecucion. `hd` muestra los **offsets dentro del archivo** (empezando en `0x0000`). Ambas vistas describen los mismos bytes, pero desde perspectivas distintas: la del procesador en ejecucion vs. la del archivo en disco. La firma `55 AA` debe aparecer en `hd` en el offset `0x01FE`, y en `objdump` en la direccion `0x7DFE`.
+
+### `--oformat binary`
+
+La opcion `--oformat binary` le indica al linker que genere un **archivo binario plano** (raw binary), sin ningun encabezado de formato ejecutable.
+ 
+Esto es necesario porque el BIOS no entiende formatos como ELF: simplemente copia los 512 bytes del sector al RAM y salta a `0x7C00`. Los primeros bytes de un ELF son `0x7F 0x45 0x4C 0x46` ('ELF' en ASCII). Si el BIOS intentara ejecutarlos como codigo x86, `0x7F` es la instruccion `JNS` (jump if not sign), que saltaria a una dirección basura. El resultado sería un cuelgue inmediato o comportamiento completamente impredecible. Este es un buen ejemplo de por qué en programacion bare-metal el **formato del binario importa tanto como su contenido**.
