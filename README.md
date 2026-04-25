@@ -336,3 +336,109 @@ qemu-system-x86_64 -hda src/main.img
 ```
 
 ![Hello SdeC](assets/mbr_hello_world.png)
+
+## 6. Depuración con GDB en Modo Real
+
+### Objetivo
+Depurar el "hello SdC" en modo real usando GDB conectado a QEMU, 
+verificando la ejecución instrucción por instrucción.
+
+### Compilación
+
+```bash
+as -g -o src/main.o src/main.S
+ld --oformat binary -o src/main.img -T src/link.ld src/main.o
+```
+
+Verificación de la imagen generada, antes de ejecutar verificamos que la imagen se genero correctamente:
+
+```bash
+hd src/main.img | head -5   # ver inicio del código
+hd src/main.img | tail -3   # verificar firma 0x55aa al final
+```
+
+La firma `55 aa` al final es lo que le indica a la BIOS que este sector
+es booteable. Sin ella, la BIOS ignora el disco y no ejecuta nada.
+
+### Ejecución con QEMU + GDB
+
+Para depurar el bootloader necesitamos dos terminales abiertas al mismo
+tiempo. QEMU actúa como la "PC virtual" y GDB como el debugger que se
+conecta a ella.
+
+**Terminal 1 — lanzar QEMU pausado:**
+```bash
+qemu-system-i386 -fda src/main.img -boot a -s -S -monitor stdio
+```
+| Flag | Significado |
+|---|---|
+| `-fda main.img` | usa la imagen como dispositivo de arranque |
+| `-boot a` | indica que debe bootear desde ese dispositivo |
+| `-s` | abre el servidor GDB en el puerto 1234 |
+| `-S` | arranca pausado, sin ejecutar nada hasta que GDB lo indique |
+| `-monitor stdio` | permite controlar QEMU desde la terminal donde fue lanzado |
+
+**Terminal 2 — conectar GDB:**
+```bash
+gdb
+```
+
+Una vez dentro de GDB, ejecutamos los siguientes comandos:
+
+```gdb
+# Conectarse a QEMU
+target remote localhost:1234
+
+# Indicar que el código es de 16 bits (modo real)
+set architecture i8086
+
+# Breakpoint al inicio del bootloader
+br *0x7c00
+
+# Arrancar ejecución hasta el breakpoint
+c
+```
+
+### Observaciones en 0x7C00
+
+Al llegar al breakpoint, GDB muestra el procesador pausado al inicio 
+del código con los siguientes valores relevantes:
+
+- `eip = 0x7C00`: el procesador está en el inicio exacto del bootloader
+- `eax = 0x0000aa55`: la BIOS dejó la firma del MBR como resultado 
+  de verificar que era booteable
+- `cr0 = [ ET ]`: el bit PE no está activo, confirmando que estamos 
+  en modo real
+
+
+### Ejecución paso a paso con `si`
+
+El comando `si` (step instruction) ejecuta de a una instrucción:
+
+| Instrucción | Efecto observado |
+|---|---|
+| `mov $msg, %si` | `esi = 0x7C0F` (dirección del string en memoria) |
+| `mov $0x0e, %ah` | `eax = 0x00000e55` (`ah=0x0e` = función imprimir BIOS) |
+| `lodsb` | `al = 0x68` ('h'), `esi` avanza a `0x7C10` |
+| `or %al, %al` | ZF no activo → `al` no es cero, el string no terminó |
+
+### Depuración del INT 0x10
+
+Para no entrar dentro del código de la BIOS al hacer step, se coloca 
+un breakpoint después del `int $0x10` y se usa `c` para saltar sobre él:
+
+```gdb
+br *0x7c0c
+c
+```
+
+Cada vez que se ejecuta `c`, la BIOS imprime un carácter en pantalla. 
+El breakpoint en `0x7c0c` se activó **10 veces**, una por cada carácter 
+de "hello SdeC".
+
+### Resultado
+
+![Hello SdeC](assets/gdb.jpeg)
+
+
+
