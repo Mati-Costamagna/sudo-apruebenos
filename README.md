@@ -146,10 +146,7 @@ sudo dd if=/dev/sda bs=1 skip=510 count=2 | xxd
 ![Comparacion imagenes](assets/image_cmp.png)
 
 La verificacion confirmo que la imagen fue grabada correctamente: los primeros 512 bytes del pendrive eran identicos a main.img y la firma 0x55 0xAA estaba presente en los offsets 0x1FE–0x1FF.
-Sin embargo, al intentar bootear desde el pendrive, la UEFI de la maquina no detecto el dispositivo como booteable.
-
-Luego de invesigar (un laaargo rato), encontramos que la razon es conceptual y no un error del procedimiento: una imagen MBR con bootloader de 16 bits no es reconocida como dispositivo booteable por UEFI.
-El estandar UEFI espera una estructura completamente distinta, pero mas adelante se abordara este tema.
+Sin embargo, al intentar bootear desde el pendrive, la UEFI de la maquina no detecto el dispositivo como booteable. La explicacion de por que ocurre esto y como se investigo se desarrolla en la seccion 4.
 
 ---
 
@@ -250,6 +247,29 @@ uefi_call_wrapper(
 ```
 
 Esta funcion devuelve un mapa completo de la memoria fisica del sistema. Es equivalente a lo que en BIOS se obtenia con la interrupcion `INT 0x15, AX=0xE820`, pero en lugar de una interfaz de registros de 16 bits, es una llamada a funcion con parametros tipados. Todo kernel moderno necesita este mapa para saber que regiones de memoria puede usar libremente y cuales estan reservadas por el firmware.
+
+### UEFI vs MBR: intento en hardware real
+
+Al intentar bootear la imagen MBR desde un pendrive en hardware real, la UEFI de la maquina ignoro el dispositivo por completo. Para diagnosticar la causa, primero verificamos el modo de arranque activo:
+
+```bash
+# Si este directorio existe, el sistema esta corriendo bajo UEFI nativo
+ls /sys/firmware/efi
+
+# Ver en los logs del kernel como fue detectado el firmware
+dmesg | grep -i "efi\|bios\|uefi"
+
+# Con bootctl (systemd-boot) para mas detalle
+bootctl status
+```
+
+La presencia del directorio `/sys/firmware/efi` confirmo que la maquina arrancaba en modo UEFI nativo, sin ninguna capa de compatibilidad legacy activa.
+
+La razon es conceptual: el estandar UEFI espera que el dispositivo contenga una particion GPT con una EFI System Partition (ESP) formateada en FAT32, con un ejecutable `.efi` en la ruta `EFI/BOOT/BOOTX64.EFI`. Esto es completamente distinto a los dos bytes `0x55 0xAA` que el BIOS legacy buscaba.
+
+La UEFI moderna ofrece un modulo llamado **CSM (Compatibility Support Module)** que emula el comportamiento del BIOS legacy y permitiria bootear imagenes MBR. Al ingresar al firmware para habilitarlo, no se encontro la opcion en ningun menu, incluso tras deshabilitar Secure Boot (prerequisito habitual para activar el CSM). La maquina directamente no exponia ese modulo.
+
+Investigando, encontramos que este comportamiento es cada vez mas comun: a partir de 2020, muchos fabricantes comenzaron a deshabilitar o eliminar el CSM por defecto para forzar el uso de Secure Boot, que es incompatible con el modo legacy. La solucion para este TP fue usar QEMU, que arranca en modo BIOS legacy por defecto.
 
 ### Casos de Bugs
 
