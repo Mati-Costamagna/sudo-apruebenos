@@ -569,25 +569,70 @@ Al intentar escribir en ese segmento el procesador lanza una
 **General Protection Fault (GPF)**. Como no hay
 manejador de excepciones, la máquina se cuelga y no aparece nada en pantalla.
 
-![Imagen](assets/out.png)
-![Imagen](assets/errorqemu.png)
+![Imagen](assets/GPF.png)
 
-### ¿Cómo sería un programa que tenga dos descriptores de memoria diferentes, uno para cada segmento (código y datos) en espacios de memoria diferenciados?
+```
+1. Bootloader arranca en 0x7C00
+         ↓
+2. Pasa a modo protegido
+         ↓
+3. Carga DS con el descriptor de datos (0x90 = solo lectura)
+         ↓
+4. Intenta escribir 'P' en 0xB8000
+         ↓
+5. El hardware detecta la violación: ese segmento es de solo lectura
+         ↓
+6. Lanza GPF - General Protection Fault (excepción #13)
+         ↓
+7. No hay manejador de excepciones
+         ↓
+8. El procesador no sabe qué hacer → reinicia
+         ↓
+9. Vuelve a 0x7C00 y empieza de nuevo → loop infinito
 
-Un programa con descriptores separados para código y datos tendría en la GDT (Global Descriptor Table) al menos dos entradas válidas (además del descriptor nulo obligatorio). El descriptor de código definiría un segmento en memoria con atributos de tipo "solo ejecución/lectura", y el descriptor de datos definiría otro segmento diferente, con atributos de tipo "lectura/escritura". El registro CS (Code Segment) apuntaría al descriptor de código mediante un selector, mientras que los registros DS, ES, SS (Data Segment, Extra Segment, Stack Segment) apuntarían al descriptor de datos. De esta forma, el procesador aísla físicamente (en términos de lógica de segmentación) las instrucciones que se ejecutan de los datos que se manipulan. Cualquier intento de escribir en el segmento de código o de ejecutar código en el segmento de datos sería detectado por el hardware como una violación de protección.
+```
+### Si tuvieramos Handler...
 
-### En modo protegido, ¿Con qué valor se cargan los registros de segmento? ¿Por qué?
+```
+GPF ocurre
+    ↓
+Procesador busca handler #13 en la IDT
+    ↓
+Ejecuta el handler → muestra "ERROR: GPF!" en pantalla
+    ↓
+Programa termina ordenadamente
+```
 
-En modo protegido, los registros de segmento (CS, DS, ES, FS, GS, SS) se cargan con selectores de segmento. Un selector de 16 bits no es una dirección de memoria base, como en modo real, sino un índice a la GDT. Por ejemplo, el valor `0x08` en binario es `0000 0000 0000 1000`. Los bits se interpretan así: los 13 bits superiores (índice = 1) apuntan a la segunda entrada de la GDT (la primera es el descriptor nulo en la posición 0), el bit 2 (TI=0) indica que se usa la GDT (y no la LDT), y los dos bits inferiores son el nivel de privilegio solicitado (RPL=00, que indica nivel 0 o kernel). La razón de ser de este mecanismo es la protección y la abstracción: el programador ya no necesita saber la dirección física base de un segmento. El procesador, usando el selector como llave, busca el descriptor en la GDT, obtiene la base, el límite y los permisos, y verifica cada acceso. Esto permite aislar procesos, compartir memoria de forma controlada y crear sistemas operativos robustos y seguros.
+### ¿Cómo sería un programa con dos descriptores de memoria diferenciados?
 
-## 8. Conclusión del trabajo práctico
+Un programa con descriptores separados para código y datos define en la GDT dos entradas válidas además del descriptor nulo obligatorio. El descriptor de código tiene atributos de solo ejecución/lectura, y el descriptor de datos tiene atributos de lectura/escritura. El registro CS apunta al descriptor de código y los registros DS, ES, SS apuntan al descriptor de datos. Cualquier intento de escribir en el segmento de código o ejecutar código en el segmento de datos es detectado por el hardware como una violación de protección.
 
-En este trabajo se estudió a profundiad la transición desde el modo real al modo protegido en arquitecturas x86, un proceso fundamental que subyace a cualquier sistema operativo moderno. Comenzamos operando en el modo real de 16 bits, accediendo a las rutinas de la BIOS mediante interrupciones de software (`INT 0x10`), lo que ilustró la máxima simplicidad del sistema pero también su mayor vulnerabilidad: la ausencia total de protección de memoria.
+### ¿Con qué valor se cargan los registros de segmento en modo protegido? ¿Por qué?
 
-Luego, construimos una GDT, definimos descriptores separados para código y datos, y ejecutamos la secuencia precisa de instrucciones (cli, lgdt, modificación de CR0, ljmp) para poner el procesador en modo protegido de 32 bits. Pudimos verificar, mediante la modificación de los bits de acceso a "solo lectura", cómo el hardware mismo se convierte en el guardián de la memoria, lanzando excepciones cuando se violan los permisos establecidos.
+En modo protegido los registros de segmento se cargan con **selectores**, no con direcciones de memoria como en modo real. Un selector de 16 bits es un índice a la GDT:
 
-Complementariamente, la investigación sobre UEFI, Coreboot y vulnerabilidades como BootHole y BlackLotus reveló que el firmware y la cadena de arranque son un eslabón crítico en la seguridad de un sistema. Aprendimos que el simple hecho de "bootear" es un proceso complejo que ha evolucionado desde el MBR de 512 bytes hasta entornos de ejecución completos como UEFI, con sus propias vulnerabilidades y mecanismos de defensa como Secure Boot.
+```
+0x08 = 0000 0000 0000 1000
+                      |||
+                      ||└─ RPL = 00 → ring 0 (kernel)
+                      |└── TI  = 0  → usar GDT
+                      └─── índice = 1 → descriptor de CÓDIGO
 
-En síntesis, se consolidó el concepto de que el sistema operativo no es la primera pieza de software que se ejecuta, sino que descansa sobre una base de firmware. Se comprendió en detalle cómo el procesador pasa del estado inicial "real" (abierto e inseguro) al estado "protegido" (controlado y aislado), un cambio de modo que no es automático, sino que debe ser orquestado cuidadosamente por el programador de bajo nivel. El desafío final demostró que se puede tener control total sobre la máquina, desde el primer ciclo de reloj hasta la configuración más íntima de sus registros de control y tablas de descriptores.
+0x10 = 0000 0000 0001 0000
+                     ||||
+                     |||└─ RPL = 00 → ring 0
+                     ||└── TI  = 0  → usar GDT
+                     └──── índice = 2 → descriptor de DATOS
+```
 
+El procesador usa el selector como llave para buscar el descriptor en la GDT, obtener la base, el límite y los permisos, y verificar cada acceso a memoria.
 
+## 8. Conclusión
+
+Este trabajo estudió la transición de modo real a modo protegido en x86. Comenzamos en modo real de 16 bits usando interrupciones de la BIOS, lo que ilustró tanto la simplicidad del sistema como su mayor vulnerabilidad: la ausencia total de protección de memoria.
+
+Luego construimos una GDT, definimos descriptores separados para código y datos, y ejecutamos la secuencia de instrucciones necesaria para pasar a modo protegido de 32 bits. La modificación de los bits de acceso a solo lectura demostró cómo el hardware actúa como guardián de la memoria, lanzando excepciones ante violaciones de permisos.
+
+La investigación sobre UEFI, Coreboot y vulnerabilidades como BootHole y BlackLotus reveló que el firmware y la cadena de arranque son un eslabón crítico en la seguridad de cualquier sistema.
+
+En síntesis, se comprendió que el sistema operativo descansa sobre una base de firmware, y que la transición de modo real a modo protegido no es automática sino que debe ser orquestada cuidadosamente por el programador, quien tiene control total sobre la máquina desde el primer ciclo de reloj.
