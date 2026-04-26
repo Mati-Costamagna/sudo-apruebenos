@@ -84,8 +84,7 @@ Desglose del comando:
  
 - `\364` (octal) = `0xF4` (hex) = instruccion `hlt` (detener CPU)
 - `%509s` = 509 espacios para completar hasta el byte 510
-- `\125\252` (octal) = `0x55 0xAA` = firma de sector booteable
-Esta firma es lo **unico** que la BIOS verifica antes de ejecutar el contenido del sector. No hay ninguna validacion del codigo en si: si los ultimos dos bytes son `0x55 0xAA`, la BIOS transfiere el control incondicionalmente a `0x7C00`. Esto explica por que un sector completamente vacio excepto por esos dos bytes es tecnicamente "booteable", y tambien por que el malware de bootkit puede sobrevivir a una reinstalacion del sistema operativo: infecta el MBR antes de que cualquier software de seguridad del OS este activo.
+- `\125\252` (octal) = `0x55 0xAA` = firma de sector booteable. Es lo **unico** que la BIOS verifica antes de ejecutar el contenido del sector: si los ultimos dos bytes son `0x55 0xAA`, el sector es considerado booteable independientemente de su contenido.
  
 **Estructura del MBR clasico:**
  
@@ -146,76 +145,11 @@ sudo dd if=/dev/sda bs=1 skip=510 count=2 | xxd
 ![Comparacion imagenes](assets/image_cmp.png)
 
 La verificacion confirmo que la imagen fue grabada correctamente: los primeros 512 bytes del pendrive eran identicos a main.img y la firma 0x55 0xAA estaba presente en los offsets 0x1FE–0x1FF.
-Sin embargo, al intentar bootear desde el pendrive, la UEFI de la maquina no detecto el dispositivo como booteable. La explicacion de por que ocurre esto y como se investigo se desarrolla en la seccion 4.
+Sin embargo, al intentar bootear desde el pendrive, la UEFI de la maquina no detecto el dispositivo como booteable. La explicacion de por que ocurre esto y como se investigo se desarrolla en la seccion 3.
 
 ---
 
-## 3. Linker
-
-### ¿Que es un linker y que hace?
-
-Un **linker** (enlazador) es una herramienta que combina uno o mas archivos objeto (`.o`) generados por el ensamblador o compilador, resuelve las referencias simbolicas entre ellos y produce un ejecutable final o imagen binaria.
- 
-Sus tareas principales son:
- 
-- **Resolucion de simbolos**: conecta cada referencia a una etiqueta con su definicion real.
-- **Relocalizacion**: ajusta las direcciones de memoria de instrucciones y datos segun donde se cargara el programa. Esta es la tarea mas critica para codigo bare-metal.
-- **Combinacion de secciones**: une secciones `.text`, `.data`, `.bss` de distintos objetos.
-- **Formato de salida**: puede producir ELF, PE, binario plano, etc.
-En desarrollo de software convencional el linker trabaja en conjunto con el sistema operativo, que carga los ejecutables en memoria y ajusta las relocalizaciones en tiempo de carga. En programacion bare-metal no hay sistema operativo que ayude: el linker debe producir un binario que funcione correctamente en la direccion exacta donde el hardware lo colocara.
-
-### ¿Que es la direccion `0x7C00` en el script del linker?
- 
-```ld
-SECTIONS {
-    . = 0x7c00;
-    .text : {
-        __start = .;
-        *(.text)
-        . = 0x1FE;
-        SHORT(0xAA55)
-    }
-}
-```
-
-`0x7C00` es la **direccion fisica donde el BIOS carga el sector de arranque (MBR) en RAM**. El valor no es arbitrario: en el IBM PC original con 32 KB de RAM, el equipo de IBM decidio ubicar el bootloader al final de la memoria disponible para maximizar el espacio libre contiguo hacia arriba para el sistema operativo. `0x7C00` es `32KB - 1KB - 512 bytes`: se reservo 1 KB para el stack del bootloader entre `0x7C00` y `0x7E00`, y el codigo ocupa los 512 bytes desde `0x7C00`.
- 
-Es **necesario** indicarsela al linker porque el codigo ensamblado contiene referencias absolutas (etiquetas, saltos, datos). Si el linker no sabe que el codigo se ejecutara desde `0x7C00`, calculara mal todas las direcciones absolutas. Por ejemplo, si la etiqueta `msg` esta a 20 bytes del inicio del codigo, su direccion real en ejecucion sera `0x7C00 + 20 = 0x7C14`, no `0x14`. Sin este dato, el bootloader intentaria leer el string de la direccion `0x14`, que contiene basura, y el resultado seria silenciosamente incorrecto.
-
-### Comparacion `objdump` vs `hd`
- 
-Compilar y linkear el hello world (utilizado en la parte 5):
- 
-```bash
-as -g -o src/main.o src/main.S
-ld --oformat binary -o src/main.img -T src/link.ld src/main.o
-```
- 
-Ver el desensamblado con direcciones ajustadas a `0x7C00`:
-```bash
-objdump -D -b binary -m i8086 -M addr16,data16 src/main.img
-```
-
-![Desensamblado](assets/objdump.png)
- 
-Ver el volcado hexadecimal crudo del archivo:
-```bash
-hd src/main.img
-```
-
-![Imagen](assets/hd_image.png)
- 
-La comparacion entre ambas herramientas es reveladora. `objdump` muestra las instrucciones con sus **direcciones logicas** (empezando en `0x7C00`), tal como las ve el procesador en ejecucion. `hd` muestra los **offsets dentro del archivo** (empezando en `0x0000`). Ambas vistas describen los mismos bytes, pero desde perspectivas distintas: la del procesador en ejecucion vs. la del archivo en disco. La firma `55 AA` debe aparecer en `hd` en el offset `0x01FE`, y en `objdump` en la direccion `0x7DFE`.
-
-### `--oformat binary`
-
-La opcion `--oformat binary` le indica al linker que genere un **archivo binario plano** (raw binary), sin ningun encabezado de formato ejecutable.
- 
-Esto es necesario porque el BIOS no entiende formatos como ELF: simplemeónte copia los 512 bytes del sector al RAM y salta a `0x7C00`. Los primeros bytes de un ELF son `0x7F 0x45 0x4C 0x46` ('ELF' en ASCII). Si el BIOS intentara ejecutarlos como codigo x86, `0x7F` es la instruccion `JNS` (jump if not sign), que saltaria a una direccion basura. El resultado seria un cuelgue inmediato o comportamiento completamente impredecible. Este es un buen ejemplo de por que en programacion bare-metal el **formato del binario importa tanto como su contenido**.
-
----
-
-## 4. UEFI y Coreboot
+## 3. UEFI y Coreboot
 
 ### UEFI
 
@@ -307,6 +241,71 @@ La implicacion de seguridad es significativa: el CSME tiene mas privilegios que 
 
 ---
 
+## 4. Linker
+
+### ¿Que es un linker y que hace?
+
+Un **linker** (enlazador) es una herramienta que combina uno o mas archivos objeto (`.o`) generados por el ensamblador o compilador, resuelve las referencias simbolicas entre ellos y produce un ejecutable final o imagen binaria.
+ 
+Sus tareas principales son:
+ 
+- **Resolucion de simbolos**: conecta cada referencia a una etiqueta con su definicion real.
+- **Relocalizacion**: ajusta las direcciones de memoria de instrucciones y datos segun donde se cargara el programa. Esta es la tarea mas critica para codigo bare-metal.
+- **Combinacion de secciones**: une secciones `.text`, `.data`, `.bss` de distintos objetos.
+- **Formato de salida**: puede producir ELF, PE, binario plano, etc.
+En desarrollo de software convencional el linker trabaja en conjunto con el sistema operativo, que carga los ejecutables en memoria y ajusta las relocalizaciones en tiempo de carga. En programacion bare-metal no hay sistema operativo que ayude: el linker debe producir un binario que funcione correctamente en la direccion exacta donde el hardware lo colocara.
+
+### ¿Que es la direccion `0x7C00` en el script del linker?
+ 
+```ld
+SECTIONS {
+    . = 0x7c00;
+    .text : {
+        __start = .;
+        *(.text)
+        . = 0x1FE;
+        SHORT(0xAA55)
+    }
+}
+```
+
+`0x7C00` es la **direccion fisica donde el BIOS carga el sector de arranque (MBR) en RAM**. El valor no es arbitrario: en el IBM PC original con 32 KB de RAM, el equipo de IBM decidio ubicar el bootloader al final de la memoria disponible para maximizar el espacio libre contiguo hacia arriba para el sistema operativo. `0x7C00` es `32KB - 1KB - 512 bytes`: se reservo 1 KB para el stack del bootloader entre `0x7C00` y `0x7E00`, y el codigo ocupa los 512 bytes desde `0x7C00`.
+ 
+Es **necesario** indicarsela al linker porque el codigo ensamblado contiene referencias absolutas (etiquetas, saltos, datos). Si el linker no sabe que el codigo se ejecutara desde `0x7C00`, calculara mal todas las direcciones absolutas. Por ejemplo, si la etiqueta `msg` esta a 20 bytes del inicio del codigo, su direccion real en ejecucion sera `0x7C00 + 20 = 0x7C14`, no `0x14`. Sin este dato, el bootloader intentaria leer el string de la direccion `0x14`, que contiene basura, y el resultado seria silenciosamente incorrecto.
+
+### Comparacion `objdump` vs `hd`
+ 
+Compilar y linkear el hello world (utilizado en la parte 5):
+ 
+```bash
+as -g -o src/main.o src/main.S
+ld --oformat binary -o src/main.img -T src/link.ld src/main.o
+```
+ 
+Ver el desensamblado con direcciones ajustadas a `0x7C00`:
+```bash
+objdump -D -b binary -m i8086 -M addr16,data16 src/main.img
+```
+
+![Desensamblado](assets/objdump.png)
+ 
+Ver el volcado hexadecimal crudo del archivo:
+```bash
+hd src/main.img
+```
+
+![Imagen](assets/hd_image.png)
+ 
+La comparacion entre ambas herramientas es reveladora. `objdump` muestra las instrucciones con sus **direcciones logicas** (empezando en `0x7C00`), tal como las ve el procesador en ejecucion. `hd` muestra los **offsets dentro del archivo** (empezando en `0x0000`). Ambas vistas describen los mismos bytes, pero desde perspectivas distintas: la del procesador en ejecucion vs. la del archivo en disco. La firma `55 AA` debe aparecer en `hd` en el offset `0x01FE`, y en `objdump` en la direccion `0x7DFE`.
+
+### `--oformat binary`
+
+La opcion `--oformat binary` le indica al linker que genere un **archivo binario plano** (raw binary), sin ningun encabezado de formato ejecutable.
+ 
+Esto es necesario porque el BIOS no entiende formatos como ELF: simplemente copia los 512 bytes del sector al RAM y salta a `0x7C00`. Los primeros bytes de un ELF son `0x7F 0x45 0x4C 0x46` ('ELF' en ASCII). Si el BIOS intentara ejecutarlos como codigo x86, `0x7F` es la instruccion `JNS` (jump if not sign), que saltaria a una direccion basura. El resultado seria un cuelgue inmediato o comportamiento completamente impredecible. Este es un buen ejemplo de por que en programacion bare-metal el **formato del binario importa tanto como su contenido**.
+
+---
+
 ## 5. Hello World en Modo Real
 
 ### El codigo `main.S`
@@ -360,7 +359,7 @@ qemu-system-x86_64 -hda src/main.img
 ## 6. Depuración con GDB en Modo Real
 
 ### Objetivo
-Depurar el "hello SdC" en modo real usando GDB conectado a QEMU, 
+Depurar el "hello SdeC" en modo real usando GDB conectado a QEMU, 
 verificando la ejecución instrucción por instrucción.
 
 ### Compilación
@@ -373,12 +372,9 @@ ld --oformat binary -o src/main.img -T src/link.ld src/main.o
 Verificación de la imagen generada, antes de ejecutar verificamos que la imagen se genero correctamente:
 
 ```bash
-hd src/main.img | head -5   # ver inicio del código
 hd src/main.img | tail -3   # verificar firma 0x55aa al final
 ```
-
-La firma `55 aa` al final es lo que le indica a la BIOS que este sector
-es booteable. Sin ella, la BIOS ignora el disco y no ejecuta nada.
+![Image validation](assets/img_depuration.png)
 
 ### Ejecución con QEMU + GDB
 
@@ -570,7 +566,7 @@ se apaga el bit `Writable`, haciendo el segmento de solo lectura:
 | Acceso solo lectura | `0x90` | Escritura deshabilitada |
 
 Al intentar escribir en ese segmento el procesador lanza una
-**General Protection Fault (GPF)** — excepción número 13. Como no hay
+**General Protection Fault (GPF)**. Como no hay
 manejador de excepciones, la máquina se cuelga y no aparece nada en pantalla.
 
 ![Imagen](assets/out.png)
@@ -580,16 +576,13 @@ manejador de excepciones, la máquina se cuelga y no aparece nada en pantalla.
 
 Un programa con descriptores separados para código y datos tendría en la GDT (Global Descriptor Table) al menos dos entradas válidas (además del descriptor nulo obligatorio). El descriptor de código definiría un segmento en memoria con atributos de tipo "solo ejecución/lectura", y el descriptor de datos definiría otro segmento diferente, con atributos de tipo "lectura/escritura". El registro CS (Code Segment) apuntaría al descriptor de código mediante un selector, mientras que los registros DS, ES, SS (Data Segment, Extra Segment, Stack Segment) apuntarían al descriptor de datos. De esta forma, el procesador aísla físicamente (en términos de lógica de segmentación) las instrucciones que se ejecutan de los datos que se manipulan. Cualquier intento de escribir en el segmento de código o de ejecutar código en el segmento de datos sería detectado por el hardware como una violación de protección.
 
-### Cambiar los bits de acceso del segmento de datos para que sea de solo lectura, intentar escribir. ¿Qué sucede? ¿Qué debería suceder a continuación?
-
-Al cambiar el byte de acceso del descriptor de datos de 0x92 (lectura/escritura) a 0x90 (solo lectura), el campo de permisos indica al procesador que ese segmento no admite operaciones de escritura. Cuando el programa ejecuta una instrucción como mov %eax, (una dirección dentro de ese segmento), el procesador, en modo protegido, verifica los permisos del descriptor antes de realizar el acceso. Al detectar que se intenta escribir en un segmento marcado como no escribible, la Unidad de Segmentación del procesador genera una excepción. La excepción específica es una General Protection Fault (GPF), que corresponde al vector de interrupción número 13. Lo que debería suceder a continuación es que el procesador, habiendo lanzado la excepción, busque en la IDT (Interrupt Descriptor Table) una rutina manejadora para esa interrupción. Si el sistema operativo hubiera instalado un manejador de GPF, este podría tomar el control, mostrar un mensaje de error ("segmentation fault"), y terminar el proceso ofensor. En nuestro bootloader simple, como no hay IDT configurada, el procesador no tiene a dónde ir y entra en un estado de "triple fault", lo que provoca que QEMU se reinicie o se detenga abruptamente.
-
 ### En modo protegido, ¿Con qué valor se cargan los registros de segmento? ¿Por qué?
 
-En modo protegido, los registros de segmento (CS, DS, ES, FS, GS, SS) se cargan con selectores de segmento. Un selector de 16 bits no es una dirección de memoria base, como en modo real, sino un índice a la GDT. Por ejemplo, el valor 0x08 en binario es 0000 0000 0000 1000. Los bits se interpretan así: los 13 bits superiores (índice = 1) apuntan a la segunda entrada de la GDT (la primera es el descriptor nulo en la posición 0), el bit 2 (TI=0) indica que se usa la GDT (y no la LDT), y los dos bits inferiores son el nivel de privilegio solicitado (RPL=00, que indica nivel 0 o kernel). La razón de ser de este mecanismo es la protección y la abstracción: el programador ya no necesita saber la dirección física base de un segmento. El procesador, usando el selector como llave, busca el descriptor en la GDT, obtiene la base, el límite y los permisos, y verifica cada acceso. Esto permite aislar procesos, compartir memoria de forma controlada y crear sistemas operativos robustos y seguros.
+En modo protegido, los registros de segmento (CS, DS, ES, FS, GS, SS) se cargan con selectores de segmento. Un selector de 16 bits no es una dirección de memoria base, como en modo real, sino un índice a la GDT. Por ejemplo, el valor `0x08` en binario es `0000 0000 0000 1000`. Los bits se interpretan así: los 13 bits superiores (índice = 1) apuntan a la segunda entrada de la GDT (la primera es el descriptor nulo en la posición 0), el bit 2 (TI=0) indica que se usa la GDT (y no la LDT), y los dos bits inferiores son el nivel de privilegio solicitado (RPL=00, que indica nivel 0 o kernel). La razón de ser de este mecanismo es la protección y la abstracción: el programador ya no necesita saber la dirección física base de un segmento. El procesador, usando el selector como llave, busca el descriptor en la GDT, obtiene la base, el límite y los permisos, y verifica cada acceso. Esto permite aislar procesos, compartir memoria de forma controlada y crear sistemas operativos robustos y seguros.
 
 ## 8. Conclusión del trabajo práctico
-En este trabajo se estudió a profundiad la transición desde el modo real al modo protegido en arquitecturas x86, un proceso fundamental que subyace a cualquier sistema operativo moderno. Comenzamos operando en el modo real de 16 bits, accediendo a las rutinas de la BIOS mediante interrupciones de software (INT 0x10), lo que ilustró la máxima simplicidad del sistema pero también su mayor vulnerabilidad: la ausencia total de protección de memoria.
+
+En este trabajo se estudió a profundiad la transición desde el modo real al modo protegido en arquitecturas x86, un proceso fundamental que subyace a cualquier sistema operativo moderno. Comenzamos operando en el modo real de 16 bits, accediendo a las rutinas de la BIOS mediante interrupciones de software (`INT 0x10`), lo que ilustró la máxima simplicidad del sistema pero también su mayor vulnerabilidad: la ausencia total de protección de memoria.
 
 Luego, construimos una GDT, definimos descriptores separados para código y datos, y ejecutamos la secuencia precisa de instrucciones (cli, lgdt, modificación de CR0, ljmp) para poner el procesador en modo protegido de 32 bits. Pudimos verificar, mediante la modificación de los bits de acceso a "solo lectura", cómo el hardware mismo se convierte en el guardián de la memoria, lanzando excepciones cuando se violan los permisos establecidos.
 
