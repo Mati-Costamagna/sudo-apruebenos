@@ -33,7 +33,7 @@ gdt_start:
     .word 0xFFFF                # limite 0:15
     .word 0x0000                # base 0:15
     .byte 0x00                  # base 16:23
-    .byte 0x92                  # acceso: datos, ring 0, lectura/escritura
+    .byte 0x92                 # acceso: datos, ring 0, lectura/escritura
     .byte 0xCF                  # flags: 32 bits, granularidad 4KB
     .byte 0x00                  # base 24:31
 gdt_end:
@@ -58,6 +58,7 @@ protected_mode:
     mov %ax, %fs          # FS = segmento extra 2
     mov %ax, %gs          # GS = segmento extra 3
     mov %ax, %ss          # SS = segmento de stack
+
 
     # Escribir "PROTECTED" en pantalla via memoria VGA (0xB8000)
     movb $'P', 0xB8000
