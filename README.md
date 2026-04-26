@@ -13,7 +13,7 @@
 
 **Link del repositorio:** https://github.com/Mati-Costamagna/sudo-apruebenos/tree/TP3
 
-**Fecha:** Abril 2026
+**Fecha:** 26 de Abril 2026
 
 ---
 
@@ -440,5 +440,119 @@ de "hello SdeC".
 
 ![Hello SdeC](assets/gdb.jpeg)
 
+## 7. Desafío Final: Modo Protegido
 
+### Objetivo
+
+Crear un bootloader que realice la transición de modo real a modo protegido,
+con una GDT que defina descriptores separados para código y datos, y verificar
+el mecanismo de protección de memoria con GDB.
+
+### Modo real vs. Modo protegido
+
+En modo real cualquier programa puede leer o escribir cualquier dirección de
+memoria, incluyendo la del sistema operativo. El modo protegido resuelve esto
+haciendo que el hardware mismo controle quién puede acceder a qué memoria.
+
+### GDT 
+
+La Global Descriptor Table es una tabla en memoria que le dice al procesador
+cómo está dividida la memoria. Cada entrada describe un segmento con su
+dirección base, tamaño y permisos.
+
+```
+GDT
+├── [0] Descriptor nulo   → obligatorio, siempre vacío
+├── [1] Descriptor código → donde vive el código (solo ejecución)
+└── [2] Descriptor datos  → donde viven los datos (lectura/escritura)
+```
+
+Cada descriptor ocupa 8 bytes y el procesador lo usa para verificar:
+
+| Verificación | Descripción |
+|---|---|
+| Límite | Si la dirección está dentro del tamaño del segmento |
+| Presencia | Si el segmento está presente en memoria |
+| Privilegio | Si el nivel de privilegio permite el acceso |
+| Tipo | Si se puede leer, escribir o ejecutar |
+
+### Proceso de transición
+
+| Paso | Instrucción | Descripción |
+|---|---|---|
+| 1 | `cli` | Deshabilitar interrupciones |
+| 2 | `lgdt` | Cargar la GDT en el procesador |
+| 3 | `CR0 \|= 1` | Prender el bit PE (Protection Enable) |
+| 4 | `ljmp` | Saltar al segmento de código de 32 bits para pasar al modo protegido|
+| 5 | `mov $DATA_SEG` | Configurar el resto de los registros de segmento |
+
+### El registro CR0
+
+CR0 es el registro de control principal del procesador. No se puede modificar
+directamente, hay que hacerlo en 3 pasos:
+
+```asm
+mov %cr0, %eax   # copiar CR0 a eax (no se puede modificar directamente)
+orl $0x1, %eax   # prender bit 0 = PE (Protection Enable)
+mov %eax, %cr0   # escribir de vuelta → en este momento cambia el modo, de real a protegido
+```
+
+Los bits más relevantes de CR0:
+
+| Bit | Nombre | Descripción |
+|---|---|---|
+| 0 | PE | Protection Enable: 0 = modo real, 1 = modo protegido |
+| 16 | WP | Write Protect: protege páginas de solo lectura |
+| 31 | PG | Paging: activa la paginación de memoria |
+
+### Registros de segmento en modo protegido
+
+En modo protegido los registros de segmento ya no contienen direcciones
+de memoria — contienen un **selector**, que es un índice a la GDT:
+
+```
+0x08 = índice 1 → descriptor de CÓDIGO (CS)
+0x10 = índice 2 → descriptor de DATOS  (DS, ES, FS, GS, SS)
+```
+
+| Registro | Valor | Apunta a |
+|---|---|---|
+| CS | 0x08 | Descriptor 1 de la GDT (código) |
+| DS | 0x10 | Descriptor 2 de la GDT (datos) |
+| ES | 0x10 | Descriptor 2 de la GDT (datos) |
+| FS | 0x10 | Descriptor 2 de la GDT (datos) |
+| GS | 0x10 | Descriptor 2 de la GDT (datos) |
+| SS | 0x10 | Descriptor 2 de la GDT (datos) |
+
+
+### Compilar y ejecutar
+
+```bash
+as -g -o src/protected.o src/protected.S
+ld --oformat binary -o src/protected.img -T src/protected_link.ld src/protected.o
+qemu-system-i386 -fda src/protected.img -boot a
+```
+
+### Resultado
+
+![Hello SdeC](assets/protected.png)
+
+---
+
+### Segmento de datos de solo lectura
+
+Cambiando el byte de acceso del descriptor de datos de `0x92` a `0x90`
+se apaga el bit `Writable`, haciendo el segmento de solo lectura:
+
+| Byte | Valor | Significado |
+|---|---|---|
+| Acceso normal | `0x92` | Lectura/escritura habilitada |
+| Acceso solo lectura | `0x90` | Escritura deshabilitada |
+
+Al intentar escribir en ese segmento el procesador lanza una
+**General Protection Fault (GPF)** — excepción número 13. Como no hay
+manejador de excepciones, la máquina se cuelga y no aparece nada en pantalla.
+
+![Imagen](assets/out.png)
+![Imagen](assets/errorqemu.png)
 
