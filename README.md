@@ -52,6 +52,64 @@ El presente trabajo parte de ese punto y da el siguiente paso: **¿qué hay entr
 
 ## TP1: Exploración del entorno UEFI y la Shell
 
+**Objetivo:** Explorar cómo UEFI abstrae el hardware y gestiona la configuración antes de la carga del sistema operativo.
+
+### Arranque en el entorno virtual
+
+Para explorar el entorno UEFI sin hardware específico, se usó **QEMU** como emulador y **OVMF** como firmware:
+
+```bash
+qemu-system-x86_64 -m 512 -bios /usr/share/ovmf/OVMF.fd -net none
+```
+
+A diferencia del BIOS Legacy que simplemente saltaba al MBR en `0x7C00`, UEFI arranca con una shell interactiva completa (**UEFI Interactive Shell v2.2**) con su propio sistema de archivos, consola y gestión de memoria.
+
+### Exploración de Handles y Protocolos
+
+UEFI no usa puertos de hardware fijos ni interrupciones como el BIOS. En cambio mantiene una base de datos de **Handles** (identificadores de entidades) que agrupan **Protocolos** (interfaces de software identificadas por GUIDs).
+
+![Fases UEFI](parte1/assets/tp1.svg)
+
+```
+Shell> map
+Shell> dh -b
+```
+![map y dh](parte1/assets/dhb.png)
+
+El comando `map` mostró el único dispositivo de bloque (`BLK0`) con su ruta completa en el árbol PCI: `PciRoot(0x0)/Pci(0x1,0x1)/Ata(0x0)`. El comando `dh -b` listó todos los Handles del sistema: `DxeCore`, `RuntimeArch`, `CpuArch`, `SecurityArch`, `DebugSupport`, entre otros.
+
+### Variables de NVRAM y secuencia de arranque
+
+La fase BDS decide qué cargar basándose en variables no volátiles almacenadas en NVRAM:
+
+```
+Shell> dmpstore -b
+Shell> set TestSeguridad "Hola UEFI"
+Shell> set -v
+```
+
+![dmpstore](parte1/assets/dmpstore.png)
+
+Se observaron las variables `BootOrder` (`00 00 01 00`) y `Boot0001` apuntando a la UEFI Shell interna. El Boot Manager lee `BootOrder`, itera cada entrada `Boot####` en orden y llama a `LoadImage()` con la Device Path correspondiente hasta encontrar un binario válido.
+
+### Mapa de memoria y hardware
+
+```
+Shell> memmap -b
+Shell> pci -b
+Shell> drivers -b
+```
+![memmap](parte1/assets/memmap.png)
+
+El mapa de memoria reveló las regiones clave: `BS_Code` (990 páginas, liberadas al cargar el OS), `RT_Code` (256 páginas, **permanecen mapeadas en el OS**) y `RT_Data` (481 páginas). Los comandos `pci` y `drivers` listaron los 5 dispositivos PCI emulados y los drivers cargados por DXE (`PciBusDxe`, `DiskIoDxe`, `PartitionDxe`, `SataController`, `GraphicsConsoleDxe`, entre otros).
+
+### Hallazgo clave: regiones RuntimeServicesCode como vector de ataque
+
+Las regiones `RT_Code` son el objetivo principal de los **bootkits** porque sobreviven a `ExitBootServices()`, ejecutan en Ring 0 con acceso total a la memoria, y son invisibles para cualquier software de seguridad que corra dentro del OS. Más aún, ciertas implementaciones aprovechan el **System Management Mode (SMM)** — un modo de ejecución en "Anillo -2", por debajo incluso del hipervisor — completamente transparente para el OS. Bootkits reales como *LoJax* (2018) y *CosmicStrand* (2022) usaron exactamente este vector para lograr persistencia a nivel de firmware.
+
+
+> Ver desarrollo completo en [`parte1/README.md`](parte1/README.md)
+
 ---
 
 ## TP2: Desarrollo, compilación y análisis de seguridad
