@@ -5,6 +5,8 @@ EFI_STATUS
 EFIAPI
 efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 {
+    volatile int gdb_wait = 1;
+    while (gdb_wait) {}   // GDB va a romper este loop
     InitializeLib(ImageHandle, SystemTable);
 
     EFI_LOADED_IMAGE *li;
