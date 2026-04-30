@@ -1,0 +1,7 @@
+# Artefactos de compilación
+aplicacion.o
+aplicacion.so
+aplicacion.efi
+
+# Instalador de Ghidra (486 MB, se descarga desde GitHub releases)
+ghidra.zip
