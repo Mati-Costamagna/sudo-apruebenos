@@ -5,3 +5,8 @@ aplicacion.efi
 
 # Instalador de Ghidra (486 MB, se descarga desde GitHub releases)
 ghidra.zip
+
+*.rep
+*.gpr
+*.lock
+*.lock~
