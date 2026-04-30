@@ -16,7 +16,8 @@ CFLAGS = \
     -fshort-wchar \
     -mno-red-zone \
     -maccumulate-outgoing-args \
-    -Wall
+    -Wall \
+    -O0
 
 LDFLAGS = \
     -shared \
