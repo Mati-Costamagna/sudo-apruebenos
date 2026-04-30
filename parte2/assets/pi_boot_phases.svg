@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 540" font-family="monospace, sans-serif">
+
+  <!-- Background -->
+  <rect width="920" height="540" fill="#0f1117"/>
+
+  <!-- Title -->
+  <text x="460" y="38" text-anchor="middle" fill="#e0e0e0" font-size="16" font-weight="bold">Platform Initialization (PI) — Fases de Arranque</text>
+
+  <!-- ── Phase boxes ── -->
+
+  <!-- SEC -->
+  <rect x="30" y="70" width="130" height="90" rx="8" fill="#1e3a5f" stroke="#4a90d9" stroke-width="2"/>
+  <text x="95" y="100" text-anchor="middle" fill="#4a90d9" font-size="13" font-weight="bold">SEC</text>
+  <text x="95" y="116" text-anchor="middle" fill="#a0c4e8" font-size="10">Security</text>
+  <text x="95" y="132" text-anchor="middle" fill="#7a9ab8" font-size="9">Cache-as-RAM</text>
+  <text x="95" y="146" text-anchor="middle" fill="#7a9ab8" font-size="9">Raíz de confianza</text>
+
+  <!-- PEI -->
+  <rect x="200" y="70" width="130" height="90" rx="8" fill="#1e3a5f" stroke="#4a90d9" stroke-width="2"/>
+  <text x="265" y="100" text-anchor="middle" fill="#4a90d9" font-size="13" font-weight="bold">PEI</text>
+  <text x="265" y="116" text-anchor="middle" fill="#a0c4e8" font-size="10">Pre-EFI Init</text>
+  <text x="265" y="132" text-anchor="middle" fill="#7a9ab8" font-size="9">Init. RAM/Chipset</text>
+  <text x="265" y="146" text-anchor="middle" fill="#7a9ab8" font-size="9">HOBs → DXE</text>
+
+  <!-- DXE — highlighted, our code runs here -->
+  <rect x="370" y="60" width="150" height="110" rx="8" fill="#1a3d2b" stroke="#3ddc84" stroke-width="2.5"/>
+  <text x="445" y="92" text-anchor="middle" fill="#3ddc84" font-size="13" font-weight="bold">DXE</text>
+  <text x="445" y="108" text-anchor="middle" fill="#a0e8c0" font-size="10">Driver Execution Env.</text>
+  <text x="445" y="124" text-anchor="middle" fill="#70b890" font-size="9">Carga drivers</text>
+  <text x="445" y="140" text-anchor="middle" fill="#70b890" font-size="9">Inicia PCI, USB, etc.</text>
+  <text x="445" y="156" text-anchor="middle" fill="#70b890" font-size="9">GDT → Long Mode</text>
+
+  <!-- BDS — highlighted, our .efi launches here -->
+  <rect x="560" y="60" width="150" height="110" rx="8" fill="#3d2a1a" stroke="#f0a030" stroke-width="2.5"/>
+  <text x="635" y="92" text-anchor="middle" fill="#f0a030" font-size="13" font-weight="bold">BDS</text>
+  <text x="635" y="108" text-anchor="middle" fill="#e8c8a0" font-size="10">Boot Device Selection</text>
+  <text x="635" y="124" text-anchor="middle" fill="#b89070" font-size="9">Variables NVRAM</text>
+  <text x="635" y="140" text-anchor="middle" fill="#b89070" font-size="9">Lanza aplicacion.efi</text>
+  <text x="635" y="156" text-anchor="middle" fill="#f0a030" font-size="9" font-weight="bold">← nuestro binario</text>
+
+  <!-- RT -->
+  <rect x="755" y="70" width="130" height="90" rx="8" fill="#1e3a5f" stroke="#4a90d9" stroke-width="2"/>
+  <text x="820" y="100" text-anchor="middle" fill="#4a90d9" font-size="13" font-weight="bold">RT</text>
+  <text x="820" y="116" text-anchor="middle" fill="#a0c4e8" font-size="10">Runtime</text>
+  <text x="820" y="132" text-anchor="middle" fill="#7a9ab8" font-size="9">ExitBootServices()</text>
+  <text x="820" y="146" text-anchor="middle" fill="#7a9ab8" font-size="9">OS toma el control</text>
+
+  <!-- ── Arrows between phases ── -->
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#4a90d9"/>
+    </marker>
+    <marker id="arr-hot" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#3ddc84"/>
+    </marker>
+  </defs>
+
+  <!-- SEC → PEI -->
+  <line x1="161" y1="115" x2="198" y2="115" stroke="#4a90d9" stroke-width="1.8" marker-end="url(#arr)"/>
+  <!-- PEI → DXE -->
+  <line x1="331" y1="115" x2="368" y2="115" stroke="#4a90d9" stroke-width="1.8" marker-end="url(#arr)"/>
+  <!-- DXE → BDS -->
+  <line x1="521" y1="115" x2="558" y2="115" stroke="#3ddc84" stroke-width="1.8" marker-end="url(#arr-hot)"/>
+  <!-- BDS → RT -->
+  <line x1="711" y1="115" x2="753" y2="115" stroke="#4a90d9" stroke-width="1.8" marker-end="url(#arr)"/>
+
+  <!-- ── HOB label on PEI→DXE arrow ── -->
+  <text x="349" y="108" text-anchor="middle" fill="#7a9ab8" font-size="8">HOBs</text>
+
+  <!-- ── Power ON label ── -->
+  <text x="30" y="65" fill="#556677" font-size="10">Power ON / Reset</text>
+  <line x1="30" y1="67" x2="30" y2="70" stroke="#556677" stroke-width="1" stroke-dasharray="3,2"/>
+
+  <!-- ── SMM sidebar ── -->
+  <rect x="30" y="215" width="855" height="65" rx="6" fill="#2a1e3a" stroke="#9b59b6" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="457" y="238" text-anchor="middle" fill="#9b59b6" font-size="12" font-weight="bold">SMM — System Management Mode</text>
+  <text x="457" y="256" text-anchor="middle" fill="#c39bd3" font-size="10">Modo ortogonal activado por SMI# en cualquier fase  ·  Gestión térmica, energía y seguridad del firmware</text>
+  <text x="457" y="271" text-anchor="middle" fill="#8e6aa8" font-size="9">Ver diagrama de transiciones de modos en "Modo Real vs Modo Protegido"</text>
+
+  <!-- SMM arrow up from phase bar -->
+  <line x1="457" y1="215" x2="457" y2="182" stroke="#9b59b6" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr-smi)"/>
+  <defs>
+    <marker id="arr-smi" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#9b59b6"/>
+    </marker>
+  </defs>
+  <text x="470" y="205" fill="#9b59b6" font-size="8">SMI#</text>
+
+  <!-- ── Processor mode timeline ── -->
+  <text x="30" y="320" fill="#556677" font-size="11" font-weight="bold">Modo del procesador:</text>
+
+  <!-- Real Mode bar (SEC only, brief) -->
+  <rect x="30" y="308" width="130" height="22" rx="4" fill="#2a2a1e" stroke="#a0a030" stroke-width="1.2"/>
+  <text x="95" y="323" text-anchor="middle" fill="#c8c860" font-size="9">Real Mode (16-bit)</text>
+
+  <!-- Protected Mode 32-bit bar (SEC transition + PEI) -->
+  <rect x="162" y="308" width="208" height="22" rx="4" fill="#1e2a2a" stroke="#30a0a0" stroke-width="1.2"/>
+  <text x="266" y="323" text-anchor="middle" fill="#60c8c8" font-size="9">Protected Mode 32-bit (PE=1)</text>
+
+  <!-- Long Mode bar (DXE → BDS) -->
+  <rect x="372" y="308" width="340" height="22" rx="4" fill="#1e2a1e" stroke="#3ddc84" stroke-width="1.2"/>
+  <text x="542" y="323" text-anchor="middle" fill="#3ddc84" font-size="9">IA-32e / Long Mode 64-bit (LME=1, CR0.PG=1)</text>
+
+  <!-- OS bar -->
+  <rect x="714" y="308" width="171" height="22" rx="4" fill="#1e1e2a" stroke="#4a90d9" stroke-width="1.2"/>
+  <text x="799" y="323" text-anchor="middle" fill="#4a90d9" font-size="9">OS kernel</text>
+
+  <!-- PE=1 transition label -->
+  <text x="162" y="304" text-anchor="middle" fill="#a0a030" font-size="8">PE=1</text>
+  <!-- LME=1 transition label -->
+  <text x="372" y="304" text-anchor="middle" fill="#30a0a0" font-size="8">LME=1</text>
+
+  <!-- Vertical alignment lines from phases to mode bar -->
+  <line x1="160" y1="160" x2="160" y2="308" stroke="#556677" stroke-width="0.8" stroke-dasharray="3,3"/>
+  <line x1="370" y1="170" x2="370" y2="308" stroke="#556677" stroke-width="0.8" stroke-dasharray="3,3"/>
+  <line x1="714" y1="160" x2="714" y2="308" stroke="#556677" stroke-width="0.8" stroke-dasharray="3,3"/>
+  <line x1="885" y1="160" x2="885" y2="308" stroke="#556677" stroke-width="0.8" stroke-dasharray="3,3"/>
+
+  <!-- ── Legend ── -->
+  <rect x="30" y="365" width="855" height="150" rx="6" fill="#13161e" stroke="#2a2e3a" stroke-width="1"/>
+  <text x="50" y="388" fill="#e0e0e0" font-size="11" font-weight="bold">Leyenda</text>
+
+  <rect x="50" y="398" width="14" height="14" rx="3" fill="#1a3d2b" stroke="#3ddc84" stroke-width="1.5"/>
+  <text x="72" y="410" fill="#a0e8c0" font-size="10">Fase donde se establece el entorno de ejecución de aplicacion.efi (Long Mode, GDT, servicios UEFI)</text>
+
+  <rect x="50" y="420" width="14" height="14" rx="3" fill="#3d2a1a" stroke="#f0a030" stroke-width="1.5"/>
+  <text x="72" y="432" fill="#e8c8a0" font-size="10">Fase donde el firmware carga y ejecuta aplicacion.efi — el BDS lee BootOrder de NVRAM y llama a LoadImage()/StartImage()</text>
+
+  <rect x="50" y="442" width="14" height="14" rx="3" fill="#1e3a5f" stroke="#4a90d9" stroke-width="1.5"/>
+  <text x="72" y="454" fill="#a0c4e8" font-size="10">Fases de inicialización de hardware (no ejecutan aplicaciones UEFI de usuario)</text>
+
+  <rect x="50" y="464" width="14" height="14" rx="3" fill="#2a1e3a" stroke="#9b59b6" stroke-width="1.5"/>
+  <text x="72" y="476" fill="#c39bd3" font-size="10">SMM: modo ortogonal activado por interrupciones SMI# — presente en todo el ciclo de vida del firmware</text>
+
+  <text x="50" y="500" fill="#556677" font-size="10">* La instrucción ENDBR64 visible en el Listing de Ghidra es una protección CET (Control-flow Enforcement Technology) que el compilador</text>
+  <text x="50" y="514" fill="#556677" font-size="10">  inserta automáticamente al inicio de cada función válida para prevenir ataques de tipo ROP/JOP en el entorno pre-OS.</text>
+
+</svg>
