@@ -225,12 +225,12 @@ mkdir -p /mnt/EFI/BOOT
 cp aplicacion.efi /mnt/
 umount /mnt
 ```
-![Formateo del USB](parte3/img1_formateo_usb.png)
+![Formateo del USB](parte3/assets/img1_formateo_usb.png)
 
 ### 1.2 Compilación de la aplicación 
 Se utilizo el archivo Makefile generado en la parte 2 para convertir "aplicacion" de ".c" a ".efi" y así ejecutarlo ahí.
 
-![Compilación con make](parte3/img2_compilacion.png)
+![Compilación con make](parte3/assets/img2_compilacion.png)
 ### Ejecución en hardware
 La prueba se realizó en una Notebook HP con firmware UEFI. Pasos previos al arranque:
 
@@ -242,7 +242,7 @@ Configurar el orden de boot: mover USB al primer lugar
 
 ### 1.3 Navegación en la Shell UEFI
 Tras desactivar el Secure Boot de esta Notebook HP, pudimos bootear desde el dispositivo USB.
-![Shell UEFI en la laptop](parte3/img3_shell_uefi.png)
+![Shell UEFI en la laptop](parte3/assets/img3_shell_uefi.png)
 
 
 > Ver análisis completo en [`parte3/README.md`](parte3/README.md)
