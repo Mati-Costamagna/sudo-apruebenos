@@ -8,9 +8,12 @@
 
 ```
 parte2/
-├── aplicacion.c    # Código fuente de la aplicación UEFI
-├── Makefile        # Automatización del proceso de compilación en 3 etapas
-└── README.md       # Este archivo
+├── aplicacion.c        # Código fuente de la aplicación UEFI
+├── Makefile            # Automatización del proceso de compilación en 3 etapas
+├── assets/             # Imágenes para el README
+├── ghidra_efi_main.png # Captura: panel decompiler de Ghidra sobre efi_main
+├── ghidra_cmp_signed_52.png  # Captura: CMP AL, -52 en el Listing de Ghidra
+└── README.md           # Este archivo
 ```
 
 ---
@@ -28,15 +31,38 @@ El archivo `aplicacion.c` implementa una aplicación UEFI mínima. A diferencia 
 
 La aplicación:
 1. Inicializa la biblioteca `gnu-efi` con `InitializeLib()`.
-2. Imprime un mensaje en pantalla usando `SystemTable->ConOut->OutputString`.
-3. Define un array de un byte con el valor `0xCC` (opcode x86 de la instrucción `INT3`).
+2. Imprime mensajes en pantalla usando `Print()` de `efilib.h`.
+3. Define un array `volatile` de un byte con el valor `0xCC` (opcode x86 de la instrucción `INT3`).
 4. Verifica en tiempo de ejecución si ese byte es `0xCC` e imprime el resultado.
+5. Espera a que el usuario presione una tecla antes de retornar, evitando que QEMU se reinicie inmediatamente.
 
-### ¿Por qué `OutputString` en lugar de `printf`?
+### ¿Por qué `Print()` en lugar de `OutputString` directo?
 
 > **Pregunta de Razonamiento 4**
 
-En el entorno pre-OS de UEFI no existe una biblioteca estándar de C (`libc`). Funciones como `printf` dependen de llamadas al sistema operativo (syscalls) que todavía no existen. `SystemTable->ConOut->OutputString` es la interfaz provista por el propio firmware para escribir en consola, y opera directamente sobre el hardware de video sin necesidad de un OS.
+En el entorno pre-OS de UEFI no existe una biblioteca estándar de C (`libc`). Funciones como `printf` dependen de llamadas al sistema operativo (syscalls) que todavía no existen.
+
+La interfaz nativa del firmware para escribir en consola es `SystemTable->ConOut->OutputString`, pero llamarla directamente desde C en Linux genera un **choque de ABI**: el compilador genera una llamada con la convención `System V AMD64 ABI` (usada en Linux), mientras que UEFI espera la **Microsoft x64 ABI**. Ambas difieren en el uso de registros para pasar argumentos (`RCX/RDX/R8/R9` vs `RDI/RSI/RDX/RCX`).
+
+`gnu-efi` provee dos soluciones:
+- **`uefi_call_wrapper(Funcion, N_args, ...)`**: macro que ajusta la convención de llamada en tiempo de ejecución. Se usa para llamadas puntuales (por ejemplo, acceder a `ConIn->ReadKeyStroke`).
+- **`Print()`**: función de alto nivel de `efilib.h` que internamente usa `uefi_call_wrapper` y además soporta formato similar a `printf`. Es la opción recomendada para imprimir texto y la que utiliza este trabajo.
+
+### Espera de teclado al finalizar
+
+Sin una pausa al final, UEFI retorna el control al firmware inmediatamente y QEMU puede reiniciarse o mostrar la shell EFI antes de que el usuario pueda ver la salida. La solución es:
+
+```c
+// Limpiar eventos pendientes de teclado
+uefi_call_wrapper(SystemTable->ConIn->Reset, 2, SystemTable->ConIn, FALSE);
+
+// Bloquear hasta recibir una tecla
+EFI_INPUT_KEY Key;
+while (uefi_call_wrapper(SystemTable->ConIn->ReadKeyStroke, 2,
+                         SystemTable->ConIn, &Key) == EFI_NOT_READY);
+```
+
+`ConIn->ReadKeyStroke` devuelve `EFI_NOT_READY` mientras no haya tecla disponible. El bucle espera activamente hasta que se presione una, momento en que retorna `EFI_SUCCESS` y la aplicación termina limpiamente.
 
 ---
 

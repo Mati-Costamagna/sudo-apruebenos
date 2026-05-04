@@ -16,6 +16,9 @@ CFLAGS = \
     -fshort-wchar \
     -mno-red-zone \
     -maccumulate-outgoing-args \
+    -mno-mmx \
+    -mno-sse \
+    -fcf-protection=none \
     -Wall \
     -O0
 
@@ -41,7 +44,10 @@ SECTIONS = \
     -j .rela.* \
     -j .reloc
 
-.PHONY: all clean check-deps
+DISK_DIR = $(HOME)/UEFI_disk
+OVMF     = /usr/share/ovmf/OVMF.fd
+
+.PHONY: all clean check-deps run
 
 all: aplicacion.efi
 
@@ -60,6 +66,14 @@ aplicacion.so: aplicacion.o
 
 aplicacion.efi: aplicacion.so
 	$(OBJCOPY) $(SECTIONS) --target=efi-app-$(ARCH) $< $@
+
+run: aplicacion.efi
+	mkdir -p $(DISK_DIR)
+	cp aplicacion.efi $(DISK_DIR)/
+	qemu-system-x86_64 \
+	    -drive if=pflash,format=raw,readonly=on,file=$(OVMF) \
+	    -drive format=raw,file=fat:rw:$(DISK_DIR) \
+	    -net none
 
 clean:
 	rm -f aplicacion.o aplicacion.so aplicacion.efi
