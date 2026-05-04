@@ -160,7 +160,73 @@ La aplicación embebe el opcode `0xCC` (instrucción `INT3`, breakpoint de softw
 > Ver análisis completo en [`parte2/README.md`](parte2/README.md)
 
 ---
+[README.md](https://github.com/user-attachments/files/27329693/README.md)
 
 ## TP3: Ejecución en hardware físico (bare metal, USB booteable)
+
+**Objetivo:** Preparar un medio de arranque USB con una aplicación UEFI propia y ejecutarla sobre hardware real, sin sistema operativo intermedio.
+
+### El estándar de partición EFI (ESP)
+
+UEFI no puede bootear desde cualquier sistema de archivos — requiere una **EFI System Partition (ESP)** formateada en **FAT32**. Este requisito está especificado en el estándar UEFI y es común a todas las implementaciones, independientemente del fabricante.
+
+La razón técnica es que el firmware UEFI incluye nativamente un driver de FAT32, pero no de otros sistemas de archivos como NTFS o ext4. Al formatear el pendrive en FAT32, aseguramos que el firmware pueda leer los binarios `.efi` sin necesidad de drivers adicionales.
+
+### Estructura de directorios estandarizada
+
+La especificación UEFI define una ruta fija para el bootloader por defecto:  /mnt/EFI/BOOT/BOOTX64.EFI (para sistemas de 64 bits)
+
+
+Para sistemas de 32 bits, el nombre sería `BOOTIA32.EFI`. Esta convención permite que cualquier firmware UEFI encuentre el ejecutable sin necesidad de configurar manualmente la ruta en NVRAM.
+
+### UEFI Shell de TianoCore
+
+**TianoCore** es la implementación de referencia de UEFI, mantenida por la comunidad y utilizada por proyectos como QEMU/OVMF. La **UEFI Shell** es una aplicación que corre sobre el firmware y provee un entorno de línea de comandos con comandos como `map`, `ls`, `cp`, `memmap` y `dmpstore`.
+
+El binario oficial se puede descargar del repositorio de TianoCore:
+
+```bash
+wget https://github.com/tianocore/edk2/raw/UDK2018/ShellBinPkg/UefiShell/X64/Shell.efi
+```
+Este archivo debe renombrarse como BOOTX64.EFI y ubicarse en /EFI/BOOT/ del pendrive. Al arrancar, el firmware carga automáticamente la Shell, desde donde luego se puede ejecutar aplicacion.efi.
+## 1. Preparación del Pendrive
+```bash
+### 1.1 Formatear en FAT32
+# Identificar el dispositivo (ej. /dev/sdb)
+sudo fdisk -l
+
+# Crear partición FAT32 con flag ESP
+sudo mkfs.vfat -F 32 /dev/sdb1
+
+# Crear la estructura de directorios
+
+mount /dev/sdb1 /mnt
+mkdir -p /mnt/EFI/BOOT
+
+# Copiar la aplicación compilada
+
+cp aplicacion.efi /mnt/
+umount /mnt
+```
+![Formateo del USB](img1_formateo_usb.png)
+
+### 1.2 Compilación de la aplicación 
+Se utilizo el archivo Makefile generado en la parte 2 para convertir "aplicacion" de ".c" a ".efi" y así ejecutarlo ahí.
+
+![Compilación con make](img2_compilacion.png)
+### Ejecución en hardware
+La prueba se realizó en una Notebook HP con firmware UEFI. Pasos previos al arranque:
+
+Acceder a la configuración del firmware (F2, F10 o DEL durante el POST)
+
+Deshabilitar Secure Boot (requisito para ejecutar binarios no firmados)
+
+Configurar el orden de boot: mover USB al primer lugar
+
+### 1.3 Navegación en la Shell UEFI
+Tras desactivar el Secure Boot de esta Notebook HP, pudimos bootear desde el dispositivo USB.
+![Shell UEFI en la laptop](img3_shell_uefi.png)
+
+
 
 ---
