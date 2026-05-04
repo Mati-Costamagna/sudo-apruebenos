@@ -157,6 +157,23 @@ La aplicación embebe el opcode `0xCC` (instrucción `INT3`, breakpoint de softw
 
 `0xCC` (204 sin signo) = `-52` en complemento a dos de 8 bits, porque el bit más significativo está en 1. Este fenómeno es relevante en ciberseguridad: un analista que no reconozca la equivalencia `-52 ↔ 0xCC ↔ INT3` puede pasar por alto técnicas de anti-debugging o breakpoints intencionales en malware de firmware.
 
+#### Nota: `OutputString` vs `Print()` — por qué el binario de Ghidra congela al bootear
+
+El código analizado en Ghidra llama a `SystemTable->ConOut->OutputString` directamente desde C. Eso es intencional para el análisis: la llamada directa produce la doble derreferencia visible en el decompilador (`(**(...)(unaff_RSI + 0x40) + 8))`), que muestra con claridad cómo UEFI expone sus servicios a través de punteros a función en estructuras anidadas.
+
+Sin embargo, **ese mismo binario congela la pantalla al ejecutarse en hardware real o en QEMU**. La causa es un choque de ABI:
+
+| ABI | Primer argumento | Segundo argumento |
+|-----|-----------------|-------------------|
+| System V AMD64 (Linux, lo que genera `gcc`) | `RDI` | `RSI` |
+| Microsoft x64 (UEFI) | `RCX` | `RDX` |
+
+Cuando `gcc` en Linux compila `OutputString(ConOut, L"texto")`, coloca `ConOut` en `RDI` y el string en `RSI`. El firmware UEFI los espera en `RCX` y `RDX`. El resultado es que la función recibe basura en sus parámetros y el comportamiento es indefinido — en la práctica, la pantalla se congela y hay que reiniciar.
+
+`Print()` de `efilib.h` resuelve esto porque internamente usa `uefi_call_wrapper`, un wrapper de `gnu-efi` que ajusta la convención de llamada antes de invocar la función del firmware. Para llamadas directas a protocolos (como `ConIn->ReadKeyStroke`) se usa `uefi_call_wrapper` explícitamente con la misma finalidad.
+
+El código fue modificado en TP3 reemplazando todas las llamadas directas por `Print()` y `uefi_call_wrapper`. La diferencia en Ghidra es que `Print()` aparece como una llamada a función nombrada en lugar de la doble derreferencia — menos ilustrativo para el análisis, pero el único que produce un `.efi` funcional.
+
 > Ver análisis completo en [`parte2/README.md`](parte2/README.md)
 
 ---
@@ -232,3 +249,11 @@ Tras desactivar el Secure Boot de esta Notebook HP, pudimos bootear desde el dis
 
 
 ---
+
+## Conclusión
+
+La arquitectura UEFI no es solo un reemplazo del BIOS Legacy: es un modelo completo de inicialización de plataforma organizado en fases (SEC → PEI → DXE → BDS → RT) donde cada etapa entrega al siguiente un entorno más rico. El trabajo anterior había construido manualmente esa transición — Real Mode, GDT, bit PE=1 en CR0 — en 512 bytes de ensamblador sin ninguna abstracción. UEFI hace exactamente lo mismo pero mediado por drivers, Handles y Protocolos: DXE establece el entorno de 64 bits y registra los servicios en la `EFI_SYSTEM_TABLE`; BDS lee `BootOrder` de NVRAM, llama a `LoadImage()` y entrega el control a la aplicación. La exploración con QEMU/OVMF y los comandos `map`, `dh`, `dmpstore` y `memmap` permitió observar esa maquinaria en tiempo real: cada driver, cada región de memoria y cada variable de arranque tienen una representación explícita en el sistema, algo que con el BIOS era completamente opaco.
+
+La aplicación desarrollada en C con `gnu-efi` ilustra las consecuencias prácticas de esa arquitectura. El pipeline de compilación — `gcc` sin libc, `ld` con linker script UEFI, `objcopy` para reempaquetar a PE/COFF — existe porque UEFI impone un formato de ejecutable con tabla de reubicaciones `.reloc`: a diferencia del MBR que el BIOS siempre carga en `0x7C00`, `LoadImage()` asigna la dirección en tiempo de ejecución y aplica los fixups. Ese detalle también explica el choque de ABI que se descubrió al ejecutar en hardware real: compilar en Linux genera convención System V AMD64, pero UEFI exige la Microsoft x64 ABI. Usar `Print()` y `uefi_call_wrapper` no es una preferencia de estilo sino una corrección funcional que la diferencia entre una pantalla congelada y una ejecución limpia.
+
+El análisis con Ghidra cierra el recorrido desde el otro extremo: partiendo del binario PE/COFF final, el decompilador reconstruye `efi_main` como dobles dereferences de puntero sobre `unaff_RSI`, que es exactamente `SystemTable->ConOut->OutputString` visto sin información de tipos. La representación de `0xCC` como `-52` no es una rareza del decompilador sino una consecuencia directa de cómo x86 codifica operandos inmediatos de 8 bits con signo: el mismo patrón de bits `11001100` que es el opcode `INT3` es también `-52` en complemento a dos. En análisis de firmware malicioso esa equivalencia tiene peso real — es la forma en que técnicas de anti-debugging quedan ocultas para quien no conoce la representación.
