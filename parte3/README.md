@@ -27,4 +27,4 @@ Una vez incluido dentro de la carpeta del pendrive, este está listo para ejecut
 ### 1.3 Navegación en la Shell UEFI
 Tras reiniciar el ordenador de prueba y abrir las configuraciones de boot, desactivamos Secure Boot. Tras desactivar el Secure Boot de esta Notebook HP, pudimos bootear desde el dispositivo USB. Al ingresar en la Shell, podemos ver varias carpetas como FS0:, FS1:, BLK0:, BLK2: que son las distintas carpetas del USB, dentro de FS0: hacemos "ls" y vemos aplicacion.efi.
 ![Shell UEFI en la laptop](img3_shell_uefi.png)
-Al ejecutar la aplicación, tanto en mi PC de escritorio como la HP que se ve en la fotografía, se me congeló la pantalla y tuve que reiniciar. Así mismo, intentando compilar en qemu este mismo archivo .efi, tuve el mismo resultado. 
+Al ejecutar la aplicación, tanto en mi PC de escritorio como la HP que se ve en la fotografía, se congeló la pantalla y hubo que reiniciar. Así mismo, intentando compilar en qemu este mismo archivo .efi, se obtuvo el mismo resultado. 
