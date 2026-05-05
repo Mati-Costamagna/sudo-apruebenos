@@ -1,4 +1,3 @@
-[README.md](https://github.com/user-attachments/files/27329693/README.md)
 # TP3 - Ejecución en Bare Metal (UEFI)
 
 ## Objetivo
@@ -13,12 +12,12 @@ El objetivo de esta tercera parte es preparar un medio de arranque USB con una a
 ## 1. Preparación del Pendrive
 
 ### 1.1 Formatear en FAT32
-Para cumplir con el requerimiento de la UEFI, se formatea en FAT32, montamos el pendrive y creamos la estructura estandarizada de directorios, dentro del cual se encuentra la  UEFI Shell oficial de TianoCore : https://github.com/tianocore/edk2/raw/UDK2018/ShellBinPkg/UefiShell/X64/Shell.efi -O /mnt/EFI/BOOT/BOOTX64.EFI
+Para cumplir con el requerimiento de la UEFI, se formatea en FAT32, montamos el pendrive y creamos la estructura estandarizada de directorios, dentro de la cual se encuentra la UEFI Shell oficial de TianoCore : https://github.com/tianocore/edk2/raw/UDK2018/ShellBinPkg/UefiShell/X64/Shell.efi -O /mnt/EFI/BOOT/BOOTX64.EFI
 
 ![Formateo del USB](assets/img1_formateo_usb.png)
 
 ### 1.2 Compilación de la aplicación 
-Clonamos el repositorio, en cuya parte 2 encontramos "aplicacion.c" y el Makefile, el cual utilizopara convertir "aplicacion" de ".c" a ".efi", resumiendo los pasos intermedios antes desarrollados en la parte 2.
+Clonamos el repositorio, en cuya parte 2 encontramos "aplicacion.c" y el Makefile, el cual utilizamos para convertir "aplicacion" de ".c" a ".efi", resumiendo los pasos intermedios antes desarrollados en la parte 2.
 
 ![Compilación con make](assets/img2_compilacion.png)
 

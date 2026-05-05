@@ -177,73 +177,50 @@ El código fue modificado en TP3 reemplazando todas las llamadas directas por `P
 > Ver análisis completo en [`parte2/README.md`](parte2/README.md)
 
 ---
-[README.md](https://github.com/user-attachments/files/27329693/README.md)
 
 ## TP3: Ejecución en hardware físico (bare metal, USB booteable)
 
-**Objetivo:** Preparar un medio de arranque USB con una aplicación UEFI propia y ejecutarla sobre hardware real, sin sistema operativo intermedio.
+**Objetivo:** Preparar un medio de arranque USB con la aplicación UEFI desarrollada en TP2 y ejecutarla sobre hardware real, sin sistema operativo intermedio.
 
-### El estándar de partición EFI (ESP)
+### El estándar ESP y preparación del pendrive
 
-UEFI no puede bootear desde cualquier sistema de archivos — requiere una **EFI System Partition (ESP)** formateada en **FAT32**. Este requisito está especificado en el estándar UEFI y es común a todas las implementaciones, independientemente del fabricante.
+UEFI no puede bootear desde cualquier sistema de archivos — requiere una **EFI System Partition (ESP)** formateada en **FAT32**, porque el firmware incluye nativamente un driver de FAT32 pero no de otros sistemas como ext4 o NTFS. La especificación define una ruta fija para el bootloader por defecto:
 
-La razón técnica es que el firmware UEFI incluye nativamente un driver de FAT32, pero no de otros sistemas de archivos como NTFS o ext4. Al formatear el pendrive en FAT32, aseguramos que el firmware pueda leer los binarios `.efi` sin necesidad de drivers adicionales.
-
-### Estructura de directorios estandarizada
-
-La especificación UEFI define una ruta fija para el bootloader por defecto:  /mnt/EFI/BOOT/BOOTX64.EFI (para sistemas de 64 bits)
-
-
-Para sistemas de 32 bits, el nombre sería `BOOTIA32.EFI`. Esta convención permite que cualquier firmware UEFI encuentre el ejecutable sin necesidad de configurar manualmente la ruta en NVRAM.
-
-### UEFI Shell de TianoCore
-
-**TianoCore** es la implementación de referencia de UEFI, mantenida por la comunidad y utilizada por proyectos como QEMU/OVMF. La **UEFI Shell** es una aplicación que corre sobre el firmware y provee un entorno de línea de comandos con comandos como `map`, `ls`, `cp`, `memmap` y `dmpstore`.
-
-El binario oficial se puede descargar del repositorio de TianoCore:
-
-```bash
-wget https://github.com/tianocore/edk2/raw/UDK2018/ShellBinPkg/UefiShell/X64/Shell.efi
 ```
-Este archivo debe renombrarse como BOOTX64.EFI y ubicarse en /EFI/BOOT/ del pendrive. Al arrancar, el firmware carga automáticamente la Shell, desde donde luego se puede ejecutar aplicacion.efi.
-## 1. Preparación del Pendrive
-```bash
-### 1.1 Formatear en FAT32
-# Identificar el dispositivo (ej. /dev/sdb)
-sudo fdisk -l
-
-# Crear partición FAT32 con flag ESP
-sudo mkfs.vfat -F 32 /dev/sdb1
-
-# Crear la estructura de directorios
-
-mount /dev/sdb1 /mnt
-mkdir -p /mnt/EFI/BOOT
-
-# Copiar la aplicación compilada
-
-cp aplicacion.efi /mnt/
-umount /mnt
+/EFI/BOOT/BOOTX64.EFI   ← ruta fija para el bootloader por defecto (64 bits)
 ```
+
+El pendrive se formateó en FAT32 y se montó con la estructura de directorios estándar. Se copiaron la **UEFI Shell de TianoCore** (renombrada como `BOOTX64.EFI`) y `aplicacion.efi` generada en TP2. Al arrancar desde el USB con Secure Boot desactivado, el firmware carga automáticamente la Shell, desde donde se ejecuta la aplicación.
+
 ![Formateo del USB](parte3/assets/img1_formateo_usb.png)
 
-### 1.2 Compilación de la aplicación 
-Se utilizo el archivo Makefile generado en la parte 2 para convertir "aplicacion" de ".c" a ".efi" y así ejecutarlo ahí.
+### Descubrimiento: choque de ABI en hardware real
+
+Al ejecutar el binario original en la Notebook HP y en una PC de escritorio, la pantalla se congelaba y había que reiniciar. El mismo comportamiento se reproducía en QEMU. La causa era un **choque de ABI**:
+
+| ABI | Primer argumento | Segundo argumento |
+|-----|-----------------|-------------------|
+| System V AMD64 (Linux, lo que genera `gcc`) | `RDI` | `RSI` |
+| Microsoft x64 (UEFI) | `RCX` | `RDX` |
+
+El código original llamaba a `SystemTable->ConOut->OutputString` directamente, por lo que `gcc` en Linux colocaba los argumentos en `RDI`/`RSI` mientras que el firmware los esperaba en `RCX`/`RDX`. La corrección fue reemplazar todas las llamadas directas por `Print()` de `efilib.h` y usar `uefi_call_wrapper` para `ConIn->ReadKeyStroke`, que internamente ajustan la convención de llamada antes de invocar la función del firmware.
+
+### Verificación en QEMU y ejecución en hardware
+
+Con el código corregido y recompilado, la ejecución funciona correctamente tanto en QEMU como sobre la Notebook HP:
 
 ![Compilación con make](parte3/assets/img2_compilacion.png)
-### Ejecución en hardware
-La prueba se realizó en una Notebook HP con firmware UEFI. Pasos previos al arranque:
 
-Acceder a la configuración del firmware (F2, F10 o DEL durante el POST)
+![Ejecución en QEMU](parte3/assets/img4_qemu_ejecucion.png)
 
-Deshabilitar Secure Boot (requisito para ejecutar binarios no firmados)
+```
+Iniciando analisis de seguridad...
+Breakpoint estatico validado en memoria.
 
-Configurar el orden de boot: mover USB al primer lugar
+Presiona cualquier tecla para finalizar el analisis...
+```
 
-### 1.3 Navegación en la Shell UEFI
-Tras desactivar el Secure Boot de esta Notebook HP, pudimos bootear desde el dispositivo USB.
 ![Shell UEFI en la laptop](parte3/assets/img3_shell_uefi.png)
-
 
 > Ver análisis completo en [`parte3/README.md`](parte3/README.md)
 

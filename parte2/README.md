@@ -11,8 +11,9 @@ parte2/
 ├── aplicacion.c        # Código fuente de la aplicación UEFI
 ├── Makefile            # Automatización del proceso de compilación en 3 etapas
 ├── assets/             # Imágenes para el README
-├── ghidra_efi_main.png # Captura: panel decompiler de Ghidra sobre efi_main
-├── ghidra_cmp_signed_52.png  # Captura: CMP AL, -52 en el Listing de Ghidra
+│   ├── ghidra_efi_main.png       # Captura: panel decompiler de Ghidra sobre efi_main
+│   ├── ghidra_cmp_signed_52.png  # Captura: CMP AL, -52 en el Listing de Ghidra
+│   └── pi_boot_phases.svg        # Diagrama de fases PI
 └── README.md           # Este archivo
 ```
 
