@@ -227,6 +227,83 @@ Presiona cualquier tecla para finalizar el analisis...
 
 ---
 
+# Trabajo Práctico - Parte 4: Depuración y Análisis Híbrido con GDB
+
+## Objetivo
+Demostrar la capacidad de depurar una aplicación UEFI nativa en tiempo real, utilizando **GDB** conectado a **QEMU**. El foco está en verificar el comportamiento de un breakpoint explícito (`0xCC`) y de la localización en memoria del código en ejecución en el instante en que se ejecuta.
+
+## Entorno de trabajo
+- **Sistema anfitrión**: Linux Mint 21.x (máquina virtual)
+- **Emulador**: QEMU (con soporte para UEFI mediante OVMF)
+- **Firmware**: OVMF.fd (TianoCore)
+- **Depurador**: GDB (multiarquitectura)
+- **Herramienta de análisis**: Ghidra 11.x (modo estático y conexión remota opcional)
+- **Aplicación objetivo**: `aplicacion.efi` (compilada desde `aplicacion.c`)
+
+## Archivos involucrados
+- `aplicacion.c`: código fuente modificado que incluye un bucle de espera (`volatile int waiting = 1; while(waiting);`) para facilitar la conexión del depurador, y un array `code[]` con el byte `0xCC`.
+- `Makefile`: reglas de compilación con flags apropiados para UEFI (convención Microsoft x64 ABI).
+- `aplicacion.efi`: binario ejecutable en formato PE/COFF.
+
+## Procedimiento y evidencia
+
+### 1. Compilación de la aplicación
+Se utilizaron los siguientes comandos para generar `aplicacion.efi` (versión con bucle de espera):
+
+```bash
+gcc -I/usr/include/efi -I/usr/include/efi/x86_64 -fno-stack-protector -fpic -fshort-wchar -c aplicacion.c -o aplicacion.o
+ld -nostdlib -T /usr/lib/elf_x86_64_efi.lds -shared -Bsymbolic -L/usr/lib /usr/lib/crt0-efi-x86_64.o aplicacion.o -o aplicacion.so -lefi -lgnuefi
+objcopy -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel -j .rela -j .reloc --target=efi-app-x86_64 aplicacion.so aplicacion.efi
+```
+
+
+### 2. Lanzamiento de QEMU con servidor de depuración
+```bash
+qemu-system-x86_64 -m 512 \
+  -bios /usr/share/ovmf/OVMF.fd \
+  -drive file=fat:rw:$HOME/uefi_security_lab,format=raw \
+  -net none \
+  -s -S
+```
+
+### 3. Conexión de GDB y resolución de direcciones
+```bash
+gdb aplicacion.so
+(gdb) target remote localhost:1234
+(gdb) set architecture i8086
+(gdb) continue   # para que el firmware arranque hasta la UEFI Shell
+```
+Una vez en la shell de UEFI se ejecutó FS0:\aplicacion.efi y la aplicación quedó detenida en el bucle while(waiting).
+Se interrumpió la ejecución con Ctrl+C en GDB y se localizó la dirección de efi_main mediante:
+```bash
+(gdb) info address efi_main
+```
+Resultado: Symbol "efi_main" is at 0x3052 (dirección dentro del espacio de memoria de la aplicación). Notar que esta dirección es dinámica y cambia en distintas ejecuciones de las pruebas 
+
+### 4. Carga de símbolos y breakpoint en la comparación
+```bash
+(gdb) add-symbol-file aplicacion.so 0x3029   # offset del .text
+(gdb) break efi_main
+(gdb) continue
+(gdb) set variable waiting = 0   # salir del bucle
+(gdb) next  (repetido hasta llegar a la línea `if (code[0] == 0xCC)`)
+```
+### 5. Resultados de la depuración 
+![ Captura de pantalla de la ejecución](parte4/assets/imgDebug.png)
+- Terminal izquierda: QEMU mostrando la UEFI Shell y la ejecución de aplicacion.efi.
+- Terminal derecha: GDB conectado, con los comandos print/x code[0] y x/1bx &code mostrando 0xcc.
+- También es visible la dirección 0x3052 correspondiente a efi_main, obtenida mediante info address.
+- El código fuente aplicacion.c se muestra en el editor lateral (opcional).
+> Ver análisis completo en [`parte4/README.md`](parte4/README.md)
+
+
+---
+
+
+
+
+
+
 ## Conclusión
 
 La arquitectura UEFI no es solo un reemplazo del BIOS Legacy: es un modelo completo de inicialización de plataforma organizado en fases (SEC → PEI → DXE → BDS → RT) donde cada etapa entrega al siguiente un entorno más rico. El trabajo anterior había construido manualmente esa transición — Real Mode, GDT, bit PE=1 en CR0 — en 512 bytes de ensamblador sin ninguna abstracción. UEFI hace exactamente lo mismo pero mediado por drivers, Handles y Protocolos: DXE establece el entorno de 64 bits y registra los servicios en la `EFI_SYSTEM_TABLE`; BDS lee `BootOrder` de NVRAM, llama a `LoadImage()` y entrega el control a la aplicación. La exploración con QEMU/OVMF y los comandos `map`, `dh`, `dmpstore` y `memmap` permitió observar esa maquinaria en tiempo real: cada driver, cada región de memoria y cada variable de arranque tienen una representación explícita en el sistema, algo que con el BIOS era completamente opaco.
