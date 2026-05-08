@@ -8,26 +8,16 @@ ARCH        = x86_64
 CFLAGS = \
     -I$(EFI_INCLUDE) \
     -I$(EFI_INCLUDE)/$(ARCH) \
-    -I$(EFI_INCLUDE)/protocol \
-    -fpic \
-    -ffreestanding \
     -fno-stack-protector \
-    -fno-strict-aliasing \
-    -fshort-wchar \
-    -mno-red-zone \
-    -maccumulate-outgoing-args \
-    -mno-mmx \
-    -mno-sse \
-    -fcf-protection=none \
-    -Wall \
-    -O0
+    -fpic \
+    -fshort-wchar
 
 LDFLAGS = \
+    -nostdlib \
+    -T /usr/lib/elf_x86_64_efi.lds \
     -shared \
     -Bsymbolic \
     -L/usr/lib \
-    -L/usr/lib/efi \
-    -T /usr/lib/elf_x86_64_efi.lds \
     /usr/lib/crt0-efi-x86_64.o \
     -lefi \
     -lgnuefi
@@ -40,8 +30,6 @@ SECTIONS = \
     -j .dynsym \
     -j .rel \
     -j .rela \
-    -j .rel.* \
-    -j .rela.* \
     -j .reloc
 
 DISK_DIR = $(HOME)/UEFI_disk
@@ -73,7 +61,8 @@ run: aplicacion.efi
 	qemu-system-x86_64 \
 	    -drive if=pflash,format=raw,readonly=on,file=$(OVMF) \
 	    -drive format=raw,file=fat:rw:$(DISK_DIR) \
-	    -net none
+	    -net none \
+	    -display gtk
 
 clean:
 	rm -f aplicacion.o aplicacion.so aplicacion.efi
