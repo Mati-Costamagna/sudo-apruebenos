@@ -47,6 +47,8 @@ El presente trabajo parte de ese punto y da el siguiente paso: **¿qué hay entr
 | `parte1/` | TP1: Exploración del entorno UEFI y la Shell (comandos `map`, `dh`, `dmpstore`, `memmap`) |
 | `parte2/` | TP2: Desarrollo, compilación y análisis de seguridad |
 | `parte3/` | TP3: Ejecución en hardware físico (bare metal, USB booteable) |
+| `parte4/` | TP4: Depuración y Análisis con GDB |
+
 
 ---
 
@@ -227,7 +229,7 @@ Presiona cualquier tecla para finalizar el analisis...
 
 ---
 
-# Trabajo Práctico - Parte 4: Depuración y Análisis Híbrido con GDB
+# TP4: Depuración y Análisis con GDB
 
 ## Objetivo
 Demostrar la capacidad de depurar una aplicación UEFI nativa en tiempo real, utilizando **GDB** conectado a **QEMU**. El foco está en verificar el comportamiento de un breakpoint explícito (`0xCC`) y de la localización en memoria del código en ejecución en el instante en que se ejecuta.
@@ -278,7 +280,7 @@ Se interrumpió la ejecución con Ctrl+C en GDB y se localizó la dirección de 
 ```bash
 (gdb) info address efi_main
 ```
-Resultado: Symbol "efi_main" is at 0x3052 (dirección dentro del espacio de memoria de la aplicación). Notar que esta dirección es dinámica y cambia en distintas ejecuciones de las pruebas 
+Resultado: Symbol "efi_main" is at 0x3029 (dirección dentro del espacio de memoria de la aplicación). Notar que esta dirección es dinámica y cambia en distintas ejecuciones de las pruebas 
 
 ### 4. Carga de símbolos y breakpoint en la comparación
 ```bash
@@ -289,10 +291,10 @@ Resultado: Symbol "efi_main" is at 0x3052 (dirección dentro del espacio de memo
 (gdb) next  (repetido hasta llegar a la línea `if (code[0] == 0xCC)`)
 ```
 ### 5. Resultados de la depuración 
-![ Captura de pantalla de la ejecución](parte4/assets/imgDebug.png)
+![ Captura de pantalla de la ejecución](parte4/imgDebug.png)
 - Terminal izquierda: QEMU mostrando la UEFI Shell y la ejecución de aplicacion.efi.
 - Terminal derecha: GDB conectado, con los comandos print/x code[0] y x/1bx &code mostrando 0xcc.
-- También es visible la dirección 0x3052 correspondiente a efi_main, obtenida mediante info address.
+- También es visible la dirección 0x3029 correspondiente a efi_main, obtenida mediante info address.
 - El código fuente aplicacion.c se muestra en el editor lateral (opcional).
 > Ver análisis completo en [`parte4/README.md`](parte4/README.md)
 
