@@ -195,6 +195,19 @@ Los archivos individuales están disponibles en el repositorio (`lsmod_costamagn
 
 La diferencia es significativa: el kernel carga únicamente los módulos necesarios para el hardware detectado y los servicios activos. Los 6569 módulos restantes están disponibles en disco pero inactivos; `modprobe` o `udev` los cargarán automáticamente si el hardware correspondiente es detectado o si un proceso los solicita.
 
+> **Pendiente:** agregar salidas de `lsmod_davila.txt` con el diff entre integrantes una vez que los demás miembros del grupo ejecuten el comando.
+
+**Módulos cargados vs. disponibles (Sabena)**
+
+| Métrica | Valor |
+|---|---|
+| Módulos actualmente cargados | 163 |
+| Módulos disponibles en `/lib/modules/` | 6377 |
+| Porcentaje cargado | ~2.6 % |
+
+Solo se carga alrededor del 2.6 % de los módulos disponibles en disco. El resto permanece inactivo hasta que `udev` detecte el hardware correspondiente o algún proceso lo solicite explícitamente via `modprobe`.
+
+
 **¿Qué pasa cuando un driver no está disponible?**
 
 Cuando se conecta un dispositivo y el módulo que lo gestiona no existe en el sistema, el kernel emite en `dmesg` un mensaje similar a:
@@ -206,8 +219,25 @@ usbcore: registered new interface driver <nombre>
 
 O bien `udev` intenta cargarlo con `modprobe` y falla silenciosamente. El dispositivo queda sin funcionalidad (no aparece en `/dev` o aparece pero sin driver asociado). El sistema no se interrumpe: simplemente ese hardware queda inoperativo.
 
-> **Pendiente:** agregar salidas de `lsmod_davila.txt` y `lsmod_sabena.txt` con el diff entre integrantes una vez que los demás miembros del grupo ejecuten el comando.
+**Comparación de módulos entre integrantes:**
 
+#### Comparación de módulos entre integrantes
+
+```bash
+diff lsmod_costamagna.txt lsmod_sabena.txt lsmod_davila.txt
+```
+
+| Aspecto | Costamagna | Sabena | Davila |
+|---|---|---|---|
+| **GPU** | AMD (`amdgpu`) | Intel integrado (`i915`) | — |
+| **Audio** | AMD (`snd_sof_amd_acp`) | Intel Tiger Lake (`snd_sof_intel_hda_common`) | — |
+| **WiFi** | Intel (`iwlwifi`) | MediaTek (`mt7921e`) | — |
+| **Virtualización** | AMD-V (`kvm_amd`) | VT-x (`kvm_intel`) | — |
+| **Contenedores** | Docker activo | Sin contenedores | — |
+
+> **Pendiente:** completar con los módulos de Davila.
+
+Lo que se ve en la tabla tiene sentido: cada sistema carga exactamente los drivers del hardware que tiene instalado. La GPU, el chip de audio y la placa WiFi son distintos en cada máquina, entonces los módulos también lo son. Lo único que coincide entre los tres sistemas son los subsistemas genéricos como USB, Bluetooth o la cámara, que funcionan igual en cualquier equipo.
 
 
 
