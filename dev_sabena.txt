@@ -1,0 +1,244 @@
+total 4
+drwxr-xr-x  19 root        root          4860 may 17 11:01 .
+drwxr-xr-x  20 root        root          4096 abr  3 09:23 ..
+crw-r--r--   1 root        root     10,   235 may 17 11:01 autofs
+drwxr-xr-x   2 root        root           660 may 17 11:01 block
+crw-------   1 root        root     10,   234 may 17 11:01 btrfs-control
+drwxr-xr-x   3 root        root            60 may 17 11:01 bus
+drwxr-xr-x   2 root        root          4540 may 17 16:20 char
+crw--w----   1 root        tty       5,     1 may 17 11:01 console
+lrwxrwxrwx   1 root        root            11 may 17 11:01 core -> /proc/kcore
+drwxr-xr-x  10 root        root           200 may 17 11:01 cpu
+crw-------   1 root        root     10,   123 may 17 11:01 cpu_dma_latency
+crw-------   1 root        root     10,   203 may 17 11:01 cuse
+drwxr-xr-x   9 root        root           180 may 17 11:01 disk
+drwxr-xr-x   2 root        root            60 may 17 11:01 dma_heap
+drwxr-xr-x   3 root        root           100 may 17 11:01 dri
+crw-------   1 root        root    234,     0 may 17 11:01 drm_dp_aux0
+crw-------   1 root        root     10,   125 may 17 11:01 ecryptfs
+crw-rw----   1 root        video    29,     0 may 17 11:01 fb0
+lrwxrwxrwx   1 root        root            13 may 17 11:01 fd -> /proc/self/fd
+crw-rw-rw-   1 root        root      1,     7 may 17 11:01 full
+crw-rw-rw-   1 root        root     10,   229 may 17 11:01 fuse
+crw-------   1 root        root    254,     0 may 17 11:01 gpiochip0
+crw-------   1 root        root    241,     0 may 17 11:01 hidraw0
+crw-------   1 root        root     10,   228 may 17 11:01 hpet
+drwxr-xr-x   2 root        root             0 may 17 11:01 hugepages
+crw-------   1 root        root     10,   183 may 17 11:01 hwrng
+crw-------   1 root        root     89,     0 may 17 11:01 i2c-0
+crw-------   1 root        root     89,     1 may 17 11:01 i2c-1
+crw-------   1 root        root     89,    10 may 17 11:01 i2c-10
+crw-------   1 root        root     89,    11 may 17 11:01 i2c-11
+crw-------   1 root        root     89,    12 may 17 11:01 i2c-12
+crw-------   1 root        root     89,    13 may 17 11:01 i2c-13
+crw-------   1 root        root     89,    14 may 17 11:01 i2c-14
+crw-------   1 root        root     89,     2 may 17 11:01 i2c-2
+crw-------   1 root        root     89,     3 may 17 11:01 i2c-3
+crw-------   1 root        root     89,     4 may 17 11:01 i2c-4
+crw-------   1 root        root     89,     5 may 17 11:01 i2c-5
+crw-------   1 root        root     89,     6 may 17 11:01 i2c-6
+crw-------   1 root        root     89,     7 may 17 11:01 i2c-7
+crw-------   1 root        root     89,     8 may 17 11:01 i2c-8
+crw-------   1 root        root     89,     9 may 17 11:01 i2c-9
+lrwxrwxrwx   1 root        root            12 may 17 11:01 initctl -> /run/initctl
+drwxr-xr-x   3 root        root           420 may 17 11:01 input
+crw-r--r--   1 root        root      1,    11 may 17 11:01 kmsg
+crw-rw----+  1 root        kvm      10,   232 may 17 11:01 kvm
+lrwxrwxrwx   1 root        root            28 may 17 11:01 log -> /run/systemd/journal/dev-log
+brw-rw----   1 root        disk      7,     0 may 17 11:01 loop0
+brw-rw----   1 root        disk      7,     1 may 17 11:01 loop1
+brw-rw----   1 root        disk      7,    10 may 17 11:01 loop10
+brw-rw----   1 root        disk      7,    11 may 17 11:01 loop11
+brw-rw----   1 root        disk      7,    12 may 17 11:01 loop12
+brw-rw----   1 root        disk      7,    13 may 17 11:01 loop13
+brw-rw----   1 root        disk      7,    14 may 17 11:01 loop14
+brw-rw----   1 root        disk      7,    15 may 17 11:01 loop15
+brw-rw----   1 root        disk      7,    16 may 17 11:01 loop16
+brw-rw----   1 root        disk      7,    17 may 17 11:01 loop17
+brw-rw----   1 root        disk      7,    18 may 17 11:01 loop18
+brw-rw----   1 root        disk      7,    19 may 17 11:01 loop19
+brw-rw----   1 root        disk      7,     2 may 17 11:01 loop2
+brw-rw----   1 root        disk      7,    20 may 17 11:01 loop20
+brw-rw----   1 root        disk      7,    21 may 17 11:01 loop21
+brw-rw----   1 root        disk      7,    22 may 17 11:01 loop22
+brw-rw----   1 root        disk      7,    23 may 17 11:01 loop23
+brw-rw----   1 root        disk      7,    24 may 17 11:01 loop24
+brw-rw----   1 root        disk      7,     3 may 17 11:01 loop3
+brw-rw----   1 root        disk      7,     4 may 17 11:01 loop4
+brw-rw----   1 root        disk      7,     5 may 17 11:01 loop5
+brw-rw----   1 root        disk      7,     6 may 17 11:01 loop6
+brw-rw----   1 root        disk      7,     7 may 17 11:01 loop7
+brw-rw----   1 root        disk      7,     8 may 17 11:01 loop8
+brw-rw----   1 root        disk      7,     9 may 17 11:01 loop9
+crw-rw----   1 root        disk     10,   237 may 17 11:01 loop-control
+drwxr-xr-x   2 root        root            60 may 17 11:01 mapper
+crw-------   1 root        root     10,   227 may 17 11:01 mcelog
+crw-rw----+  1 root        video   236,     0 may 17 11:01 media0
+crw-------   1 root        root    237,     0 may 17 11:01 mei0
+crw-r-----   1 root        kmem      1,     1 may 17 11:01 mem
+drwxrwxrwt   2 root        root            40 may 17 11:01 mqueue
+crw-------   1 root        root     90,     0 may 17 11:01 mtd0
+crw-------   1 root        root     90,     1 may 17 11:01 mtd0ro
+drwxr-xr-x   2 root        root            60 may 17 11:01 net
+crw-------   1 root        root    239,     0 may 17 11:01 ng0n1
+crw-rw-rw-   1 root        root      1,     3 may 17 11:01 null
+crw-------   1 root        root    240,     0 may 17 11:01 nvme0
+brw-rw----   1 root        disk    259,     0 may 17 11:01 nvme0n1
+brw-rw----   1 root        disk    259,     1 may 17 11:01 nvme0n1p1
+brw-rw----   1 root        disk    259,     2 may 17 11:01 nvme0n1p2
+brw-rw----   1 root        disk    259,     3 may 17 11:01 nvme0n1p3
+brw-rw----   1 root        disk    259,     4 may 17 11:01 nvme0n1p4
+brw-rw----   1 root        disk    259,     5 may 17 11:01 nvme0n1p5
+crw-------   1 root        root     10,   144 may 17 11:01 nvram
+crw-r-----   1 root        kmem      1,     4 may 17 11:01 port
+crw-------   1 root        root    108,     0 may 17 11:01 ppp
+crw-------   1 root        root     10,     1 may 17 11:01 psaux
+crw-rw-rw-   1 root        tty       5,     2 may 17 19:14 ptmx
+drwxr-xr-x   2 root        root             0 may 17 11:01 pts
+crw-rw-rw-   1 root        root      1,     8 may 17 11:01 random
+crw-rw-r--+  1 root        root     10,   242 may 17 11:01 rfkill
+lrwxrwxrwx   1 root        root             4 may 17 11:01 rtc -> rtc0
+crw-------   1 root        root    248,     0 may 17 11:01 rtc0
+drwxrwxrwt   3 root        root            60 may 17 19:14 shm
+crw-------   1 root        root     10,   231 may 17 11:01 snapshot
+drwxr-xr-x   3 root        root           320 may 17 11:01 snd
+lrwxrwxrwx   1 root        root            15 may 17 11:01 stderr -> /proc/self/fd/2
+lrwxrwxrwx   1 root        root            15 may 17 11:01 stdin -> /proc/self/fd/0
+lrwxrwxrwx   1 root        root            15 may 17 11:01 stdout -> /proc/self/fd/1
+crw-rw----   1 tss         root     10,   224 may 17 11:01 tpm0
+crw-rw----   1 tss         tss     253, 65536 may 17 11:01 tpmrm0
+crw-rw-rw-   1 root        tty       5,     0 may 17 18:57 tty
+crw--w----   1 root        tty       4,     0 may 17 11:01 tty0
+crw--w----   1 root        tty       4,     1 may 17 11:01 tty1
+crw--w----   1 root        tty       4,    10 may 17 11:01 tty10
+crw--w----   1 root        tty       4,    11 may 17 11:01 tty11
+crw--w----   1 root        tty       4,    12 may 17 11:01 tty12
+crw--w----   1 root        tty       4,    13 may 17 11:01 tty13
+crw--w----   1 root        tty       4,    14 may 17 11:01 tty14
+crw--w----   1 root        tty       4,    15 may 17 11:01 tty15
+crw--w----   1 root        tty       4,    16 may 17 11:01 tty16
+crw--w----   1 root        tty       4,    17 may 17 11:01 tty17
+crw--w----   1 root        tty       4,    18 may 17 11:01 tty18
+crw--w----   1 root        tty       4,    19 may 17 11:01 tty19
+crw--w----   1 pilarsabena tty       4,     2 may 17 11:02 tty2
+crw--w----   1 root        tty       4,    20 may 17 11:01 tty20
+crw--w----   1 root        tty       4,    21 may 17 11:01 tty21
+crw--w----   1 root        tty       4,    22 may 17 11:01 tty22
+crw--w----   1 root        tty       4,    23 may 17 11:01 tty23
+crw--w----   1 root        tty       4,    24 may 17 11:01 tty24
+crw--w----   1 root        tty       4,    25 may 17 11:01 tty25
+crw--w----   1 root        tty       4,    26 may 17 11:01 tty26
+crw--w----   1 root        tty       4,    27 may 17 11:01 tty27
+crw--w----   1 root        tty       4,    28 may 17 11:01 tty28
+crw--w----   1 root        tty       4,    29 may 17 11:01 tty29
+crw--w----   1 root        tty       4,     3 may 17 11:01 tty3
+crw--w----   1 root        tty       4,    30 may 17 11:01 tty30
+crw--w----   1 root        tty       4,    31 may 17 11:01 tty31
+crw--w----   1 root        tty       4,    32 may 17 11:01 tty32
+crw--w----   1 root        tty       4,    33 may 17 11:01 tty33
+crw--w----   1 root        tty       4,    34 may 17 11:01 tty34
+crw--w----   1 root        tty       4,    35 may 17 11:01 tty35
+crw--w----   1 root        tty       4,    36 may 17 11:01 tty36
+crw--w----   1 root        tty       4,    37 may 17 11:01 tty37
+crw--w----   1 root        tty       4,    38 may 17 11:01 tty38
+crw--w----   1 root        tty       4,    39 may 17 11:01 tty39
+crw--w----   1 root        tty       4,     4 may 17 11:01 tty4
+crw--w----   1 root        tty       4,    40 may 17 11:01 tty40
+crw--w----   1 root        tty       4,    41 may 17 11:01 tty41
+crw--w----   1 root        tty       4,    42 may 17 11:01 tty42
+crw--w----   1 root        tty       4,    43 may 17 11:01 tty43
+crw--w----   1 root        tty       4,    44 may 17 11:01 tty44
+crw--w----   1 root        tty       4,    45 may 17 11:01 tty45
+crw--w----   1 root        tty       4,    46 may 17 11:01 tty46
+crw--w----   1 root        tty       4,    47 may 17 11:01 tty47
+crw--w----   1 root        tty       4,    48 may 17 11:01 tty48
+crw--w----   1 root        tty       4,    49 may 17 11:01 tty49
+crw--w----   1 root        tty       4,     5 may 17 11:01 tty5
+crw--w----   1 root        tty       4,    50 may 17 11:01 tty50
+crw--w----   1 root        tty       4,    51 may 17 11:01 tty51
+crw--w----   1 root        tty       4,    52 may 17 11:01 tty52
+crw--w----   1 root        tty       4,    53 may 17 11:01 tty53
+crw--w----   1 root        tty       4,    54 may 17 11:01 tty54
+crw--w----   1 root        tty       4,    55 may 17 11:01 tty55
+crw--w----   1 root        tty       4,    56 may 17 11:01 tty56
+crw--w----   1 root        tty       4,    57 may 17 11:01 tty57
+crw--w----   1 root        tty       4,    58 may 17 11:01 tty58
+crw--w----   1 root        tty       4,    59 may 17 11:01 tty59
+crw--w----   1 root        tty       4,     6 may 17 11:01 tty6
+crw--w----   1 root        tty       4,    60 may 17 11:01 tty60
+crw--w----   1 root        tty       4,    61 may 17 11:01 tty61
+crw--w----   1 root        tty       4,    62 may 17 11:01 tty62
+crw--w----   1 root        tty       4,    63 may 17 11:01 tty63
+crw--w----   1 root        tty       4,     7 may 17 11:01 tty7
+crw--w----   1 root        tty       4,     8 may 17 11:01 tty8
+crw--w----   1 root        tty       4,     9 may 17 11:01 tty9
+crw-------   1 root        root      5,     3 may 17 11:01 ttyprintk
+crw-rw----   1 root        dialout   4,    64 may 17 11:01 ttyS0
+crw-rw----   1 root        dialout   4,    65 may 17 11:01 ttyS1
+crw-rw----   1 root        dialout   4,    74 may 17 11:01 ttyS10
+crw-rw----   1 root        dialout   4,    75 may 17 11:01 ttyS11
+crw-rw----   1 root        dialout   4,    76 may 17 11:01 ttyS12
+crw-rw----   1 root        dialout   4,    77 may 17 11:01 ttyS13
+crw-rw----   1 root        dialout   4,    78 may 17 11:01 ttyS14
+crw-rw----   1 root        dialout   4,    79 may 17 11:01 ttyS15
+crw-rw----   1 root        dialout   4,    80 may 17 11:01 ttyS16
+crw-rw----   1 root        dialout   4,    81 may 17 11:01 ttyS17
+crw-rw----   1 root        dialout   4,    82 may 17 11:01 ttyS18
+crw-rw----   1 root        dialout   4,    83 may 17 11:01 ttyS19
+crw-rw----   1 root        dialout   4,    66 may 17 11:01 ttyS2
+crw-rw----   1 root        dialout   4,    84 may 17 11:01 ttyS20
+crw-rw----   1 root        dialout   4,    85 may 17 11:01 ttyS21
+crw-rw----   1 root        dialout   4,    86 may 17 11:01 ttyS22
+crw-rw----   1 root        dialout   4,    87 may 17 11:01 ttyS23
+crw-rw----   1 root        dialout   4,    88 may 17 11:01 ttyS24
+crw-rw----   1 root        dialout   4,    89 may 17 11:01 ttyS25
+crw-rw----   1 root        dialout   4,    90 may 17 11:01 ttyS26
+crw-rw----   1 root        dialout   4,    91 may 17 11:01 ttyS27
+crw-rw----   1 root        dialout   4,    92 may 17 11:01 ttyS28
+crw-rw----   1 root        dialout   4,    93 may 17 11:01 ttyS29
+crw-rw----   1 root        dialout   4,    67 may 17 11:01 ttyS3
+crw-rw----   1 root        dialout   4,    94 may 17 11:01 ttyS30
+crw-rw----   1 root        dialout   4,    95 may 17 11:01 ttyS31
+crw-rw----   1 root        dialout   4,    68 may 17 11:01 ttyS4
+crw-rw----   1 root        dialout   4,    69 may 17 11:01 ttyS5
+crw-rw----   1 root        dialout   4,    70 may 17 11:01 ttyS6
+crw-rw----   1 root        dialout   4,    71 may 17 11:01 ttyS7
+crw-rw----   1 root        dialout   4,    72 may 17 11:01 ttyS8
+crw-rw----   1 root        dialout   4,    73 may 17 11:01 ttyS9
+crw-rw----   1 root        kvm      10,   124 may 17 11:01 udmabuf
+crw-------   1 root        root     10,   239 may 17 11:01 uhid
+crw-------   1 root        root     10,   223 may 17 11:01 uinput
+crw-rw-rw-   1 root        root      1,     9 may 17 11:01 urandom
+crw-------   1 root        root     10,   126 may 17 11:01 userfaultfd
+crw-------   1 root        root     10,   240 may 17 11:01 userio
+drwxr-xr-x   4 root        root            80 may 17 11:01 v4l
+crw-rw----   1 root        tty       7,     0 may 17 11:01 vcs
+crw-rw----   1 root        tty       7,     1 may 17 11:01 vcs1
+crw-rw----   1 root        tty       7,     2 may 17 11:01 vcs2
+crw-rw----   1 root        tty       7,     3 may 17 11:01 vcs3
+crw-rw----   1 root        tty       7,     4 may 17 11:01 vcs4
+crw-rw----   1 root        tty       7,     5 may 17 11:01 vcs5
+crw-rw----   1 root        tty       7,     6 may 17 11:01 vcs6
+crw-rw----   1 root        tty       7,   128 may 17 11:01 vcsa
+crw-rw----   1 root        tty       7,   129 may 17 11:01 vcsa1
+crw-rw----   1 root        tty       7,   130 may 17 11:01 vcsa2
+crw-rw----   1 root        tty       7,   131 may 17 11:01 vcsa3
+crw-rw----   1 root        tty       7,   132 may 17 11:01 vcsa4
+crw-rw----   1 root        tty       7,   133 may 17 11:01 vcsa5
+crw-rw----   1 root        tty       7,   134 may 17 11:01 vcsa6
+crw-rw----   1 root        tty       7,    64 may 17 11:01 vcsu
+crw-rw----   1 root        tty       7,    65 may 17 11:01 vcsu1
+crw-rw----   1 root        tty       7,    66 may 17 11:01 vcsu2
+crw-rw----   1 root        tty       7,    67 may 17 11:01 vcsu3
+crw-rw----   1 root        tty       7,    68 may 17 11:01 vcsu4
+crw-rw----   1 root        tty       7,    69 may 17 11:01 vcsu5
+crw-rw----   1 root        tty       7,    70 may 17 11:01 vcsu6
+drwxr-xr-x   2 root        root            60 may 17 11:01 vfio
+crw-------   1 root        root     10,   127 may 17 11:01 vga_arbiter
+crw-------   1 root        root     10,   137 may 17 11:01 vhci
+crw-rw----   1 root        kvm      10,   238 may 17 11:01 vhost-net
+crw-rw----   1 root        kvm      10,   241 may 17 11:01 vhost-vsock
+crw-rw----+  1 root        video    81,     0 may 17 11:01 video0
+crw-rw----+  1 root        video    81,     1 may 17 11:01 video1
+crw-rw-rw-   1 root        root      1,     5 may 17 11:01 zero
+crw-------   1 root        root     10,   249 may 17 11:01 zfs
