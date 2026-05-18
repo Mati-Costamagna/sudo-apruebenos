@@ -255,8 +255,20 @@ El flujo que se puede seguir en la salida es este:
 
 El punto importante es que `printf` no es una syscall: es una función de la libc que internamente termina llamando a `write`, que sí lo es. Todo lo que un programa hace "visible" al SO pasa por esta interfaz de syscalls, y `strace` permite verla completa.
 
+**Análisis de la salida (Costamagna)**
+
+El output sigue el mismo flujo general pero presenta diferencias concretas respecto al de mi compañera, que reflejan distintas versiones de kernel y entornos de sistema:
+
+- **36 líneas de traza vs 35 syscalls** — el conteo es prácticamente idéntico; la diferencia en el archivo se explica por la línea final `+++ exited with 0 +++` que `strace` agrega pero no es una syscall.
+- **`fstat` vs `newfstatat`** — mi salida usa `fstat(3, ...)` para inspeccionar los archivos del linker, mientras que Sabena usa `newfstatat(3, "", ..., AT_EMPTY_PATH)`. Ambas hacen lo mismo (obtener metadatos de un fd), pero `newfstatat` es la variante más nueva introducida en kernels recientes para unificar la familia `stat`. Esto indica que los dos sistemas tienen versiones de libc distintas.
+- **`arch_prctl(0x3001 ...)` ausente** — Mi compañera tiene una llamada extra `arch_prctl(0x3001 /* ARCH_??? */, ...)` que falla con `EINVAL`. El código `0x3001` corresponde a `ARCH_GET_XCOMP_SUPP`, una syscall para consultar soporte de "extended CPU state components" (relacionado con AMX/AVX-512 en Intel). El kernel de Sabena la intenta porque su libc la incluyó, pero el hardware no la soporta y devuelve error. En mi entorno esta llamada directamente no aparece, probablemente porque usa una versión de libc diferente que no la emite.
+- **Tamaño del `ld.so.cache`** — Se mapea en 92.951 bytes vs 74.375 bytes de Sabena. El cache del linker es proporcional a la cantidad de librerías instaladas en el sistema; mi entorno tiene más librerías registradas.
+- **Variables de entorno** — `execve` muestra 84 variables en el entorno vs 62 en el de Sabena. Esto es simplemente el estado de la sesión de shell de cada uno al momento de ejecutar el programa, sin impacto funcional.
+
+En ambos casos el resultado es el mismo: una sola llamada `write(1, "Hola Sistemas de Computacion!\n", 30)` produce el output visible, y `exit_group(0)` cierra el proceso limpiamente. Las diferencias son ruido del entorno, no del programa.
+
 Los reportes completos se encuentran en el repositorio:
-- [strace Matias Costamagna](strace_costamagna.txt) (Pendiente de subir)
+- [strace Matias Costamagna](strace_costamagna.txt)
 - [strace Carlos Valentino Davila](strace_davila.txt) (Pendiente de subir)
 - [strace Maria Pilar Sabena](strace_sabena.txt)
 
