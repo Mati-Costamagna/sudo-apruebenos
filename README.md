@@ -208,9 +208,13 @@ hwinfo --short > hwinfo_apellido.txt
 
 
 Los reportes completos se encuentran adjuntos en los siguientes archivos del repositorio:
-- [Reporte de Matias Costamagna](hwinfo_costamagna.txt) (Pendiente de subir)
+- [Reporte de Matias Costamagna](hwinfo_costamagna.txt)
 - [Reporte de Carlos Valentino Davila](hwinfo_davila.txt) (Pendiente de subir)
 - [Reporte de Pilar Sabena](hwinfo_sabena.txt)
+
+**Breve descripción del hardware detectado (Matias Costamagna):**
+
+El sistema de Costamagna está basado en un procesador **AMD Ryzen 7 4700U** (arquitectura Renoir, 8 núcleos) con gráficos integrados **ATI Renoir** gestionados por el driver `amdgpu`. El almacenamiento es un SSD **Samsung NVMe** (`/dev/nvme0n1`), soportado por el driver `nvme`. La conectividad inalámbrica y Bluetooth provienen de una placa **Intel Wi-Fi 6 AX200**, que utiliza el módulo `iwlwifi`. El audio es manejado por `snd_hda_intel` a través del controlador AMD Family 17h HD Audio. Se detectaron también interfaces de red virtuales correspondientes a Docker (`docker0`) y libvirt (`virbr0`), lo que confirma los módulos de virtualización y contenedores (`kvm_amd`, `bridge`) visibles en la Sección 3.
 
 **Breve descripción del hardware detectado (Pilar Sabena):**
 Al inspeccionar el archivo `hwinfo_sabena.txt`, se observa que el kernel de Linux interactúa directamente con una arquitectura basada en **Intel** (procesador y gráficos integrados a través del driver `i915`), componentes de almacenamiento masivo **NVMe**, y adaptadores de red inalámbrica gestionados dinámicamente por módulos del kernel. Esto ratifica el análisis de la Sección 3, donde los módulos cargados en memoria responden estrictamente a este inventario de componentes físicos.
@@ -263,6 +267,3 @@ Un segmentation fault ocurre cuando un proceso intenta acceder a una dirección 
 Cuando eso pasa en un programa de usuario, el hardware genera una excepción (page fault) que el kernel intercepta. El kernel determina que el acceso es inválido, le manda la señal `SIGSEGV` al proceso y lo termina. El resto del sistema no se ve afectado.
 
 En un módulo de kernel la historia es distinta. No hay nadie por encima que pueda interceptar el error y contenerlo. Un acceso de memoria inválido en espacio de kernel genera un **kernel panic** o un **oops** — el sistema puede quedar inestable o directamente reiniciarse. No hay red de seguridad.
-
-
-
