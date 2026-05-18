@@ -269,5 +269,44 @@ La otra diferencia importante es qué funciones tienen disponibles. Un programa 
 
 Y la consecuencia más importante de todo esto: un programa corre en espacio de usuario, así que si falla, el SO lo mata y el resto del sistema sigue andando. Un módulo corre en espacio de kernel, al mismo nivel que el propio SO. Si un módulo hace algo mal — un puntero inválido, por ejemplo — no hay nadie que lo atrape: el kernel puede caerse entero.
 
+### 6. Llamadas al sistema de un hello world
+
+Se compiló y ejecutó un programa simple con `strace` para observar qué syscalls realiza:
+
+```bash
+gcc -Wall -o hello hello.c
+strace ./hello
+strace -c ./hello
+```
+
+La salida completa de cada integrante está en `strace_apellido.txt` respectivamente en el repositorio. 
+
+**Análisis de la salida (Sabena)**
+
+Lo primero que llama la atención es la cantidad de syscalls que genera un programa tan simple: 35 llamadas en total para imprimir una sola línea. Esto se explica porque la mayor parte del trabajo no es el `printf` en sí, sino la inicialización del proceso y la carga de la libc.
+
+El flujo que se puede seguir en la salida es este:
+
+- `execve` — el kernel arranca el proceso cargando el binario
+- `openat` + `mmap` — el linker dinámico busca y mapea en memoria la librería `libc.so.6`
+- `brk` + `mmap` — se reserva memoria para el heap y otros segmentos
+- `write(1, "Hola Sistemas de Computacion!\n", 30)` — acá es donde ocurre el `printf` real: una sola llamada a `write` sobre el descriptor 1 (stdout)
+- `exit_group(0)` — el proceso termina
+
+El punto importante es que `printf` no es una syscall: es una función de la libc que internamente termina llamando a `write`, que sí lo es. Todo lo que un programa hace "visible" al SO pasa por esta interfaz de syscalls, y `strace` permite verla completa.
+
+Los reportes completos se encuentran en el repositorio:
+- [strace Matias Costamagna](strace_costamagna.txt) (Pendiente de subir)
+- [strace Carlos Valentino Davila](strace_davila.txt) (Pendiente de subir)
+- [strace Maria Pilar Sabena](strace_sabena.txt)
+
+### 7. ¿Qué es un segmentation fault y cómo lo manejan el kernel y un programa?
+
+Un segmentation fault ocurre cuando un proceso intenta acceder a una dirección de memoria que no le corresponde: leer o escribir fuera de su espacio asignado, desreferenciar un puntero nulo, etc.
+
+Cuando eso pasa en un programa de usuario, el hardware genera una excepción (page fault) que el kernel intercepta. El kernel determina que el acceso es inválido, le manda la señal `SIGSEGV` al proceso y lo termina. El resto del sistema no se ve afectado.
+
+En un módulo de kernel la historia es distinta. No hay nadie por encima que pueda interceptar el error y contenerlo. Un acceso de memoria inválido en espacio de kernel genera un **kernel panic** o un **oops** — el sistema puede quedar inestable o directamente reiniciarse. No hay red de seguridad.
+
 
 
