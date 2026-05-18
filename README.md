@@ -259,5 +259,15 @@ Los reportes completos se encuentran adjuntos en los siguientes archivos del rep
 **Breve descripción del hardware detectado (Pilar Sabena):**
 Al inspeccionar el archivo `hwinfo_sabena.txt`, se observa que el kernel de Linux interactúa directamente con una arquitectura basada en **Intel** (procesador y gráficos integrados a través del driver `i915`), componentes de almacenamiento masivo **NVMe**, y adaptadores de red inalámbrica gestionados dinámicamente por módulos del kernel. Esto ratifica el análisis de la Sección 3, donde los módulos cargados en memoria responden estrictamente a este inventario de componentes físicos.
 
+### 5. ¿Qué diferencia existe entre un módulo y un programa?
+
+La diferencia más básica está en cómo empiezan, terminan y qué pueden usar.
+
+Un programa normal arranca desde `main()`, hace lo suyo y cuando termina le devuelve el control al sistema operativo. Un módulo no tiene `main()`: tiene `module_init()` para cuando se carga y `module_exit()` para cuando se descarga. Entre medio no "corre" de forma continua — queda registrado en el kernel esperando que algo lo invoque.
+
+La otra diferencia importante es qué funciones tienen disponibles. Un programa puede llamar a cualquier función de la biblioteca estándar de C (`printf`, `malloc`, etc.), que internamente hacen llamadas al sistema. Un módulo no puede usar nada de eso: solo puede llamar a las funciones que el propio kernel exporta. Esos símbolos están listados en `/proc/kallsyms`.
+
+Y la consecuencia más importante de todo esto: un programa corre en espacio de usuario, así que si falla, el SO lo mata y el resto del sistema sigue andando. Un módulo corre en espacio de kernel, al mismo nivel que el propio SO. Si un módulo hace algo mal — un puntero inválido, por ejemplo — no hay nadie que lo atrape: el kernel puede caerse entero.
+
 
 
