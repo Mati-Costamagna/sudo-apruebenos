@@ -239,6 +239,25 @@ diff lsmod_costamagna.txt lsmod_sabena.txt lsmod_davila.txt
 
 Lo que se ve en la tabla tiene sentido: cada sistema carga exactamente los drivers del hardware que tiene instalado. La GPU, el chip de audio y la placa WiFi son distintos en cada máquina, entonces los módulos también lo son. Lo único que coincide entre los tres sistemas son los subsistemas genéricos como USB, Bluetooth o la cámara, que funcionan igual en cualquier equipo.
 
+### 4. Hardware real: hwinfo
+
+Cada integrante instaló y ejecutó la herramienta de diagnóstico de hardware `hwinfo` para relevar los componentes físicos del sistema y comprender de manera empírica qué módulos del kernel se necesitan activar para darles soporte.
+
+Los comandos utilizados en la terminal para instalar la utilidad y exportar el informe resumido fueron:
+
+```bash
+sudo apt install hwinfo
+hwinfo --short > hwinfo_apellido.txt
+```
+
+
+Los reportes completos se encuentran adjuntos en los siguientes archivos del repositorio:
+- [Reporte de Matias Costamagna](hwinfo_costamagna.txt) (Pendiente de subir)
+- [Reporte de Carlos Valentino Davila](hwinfo_davila.txt) (Pendiente de subir)
+- [Reporte de Pilar Sabena](hwinfo_sabena.txt)
+
+**Breve descripción del hardware detectado (Pilar Sabena):**
+Al inspeccionar el archivo `hwinfo_sabena.txt`, se observa que el kernel de Linux interactúa directamente con una arquitectura basada en **Intel** (procesador y gráficos integrados a través del driver `i915`), componentes de almacenamiento masivo **NVMe**, y adaptadores de red inalámbrica gestionados dinámicamente por módulos del kernel. Esto ratifica el análisis de la Sección 3, donde los módulos cargados en memoria responden estrictamente a este inventario de componentes físicos.
 
 
 

@@ -1,0 +1,74 @@
+cpu:
+                       11th Gen Intel(R) Core(TM) i7-1195G7 @ 2.90GHz, 1266 MHz
+                       11th Gen Intel(R) Core(TM) i7-1195G7 @ 2.90GHz, 1405 MHz
+                       11th Gen Intel(R) Core(TM) i7-1195G7 @ 2.90GHz, 1514 MHz
+                       11th Gen Intel(R) Core(TM) i7-1195G7 @ 2.90GHz, 833 MHz
+                       11th Gen Intel(R) Core(TM) i7-1195G7 @ 2.90GHz, 1533 MHz
+                       11th Gen Intel(R) Core(TM) i7-1195G7 @ 2.90GHz, 400 MHz
+                       11th Gen Intel(R) Core(TM) i7-1195G7 @ 2.90GHz, 1475 MHz
+                       11th Gen Intel(R) Core(TM) i7-1195G7 @ 2.90GHz, 1566 MHz
+keyboard:
+  /dev/input/event3    AT Translated Set 2 keyboard
+mouse:
+  /dev/input/mice      ELAN0518:01 04F3:31FC Mouse
+  /dev/input/mice      ELAN0518:01 04F3:31FC Touchpad
+monitor:
+                       NXSM2200
+                       AUO LCD Monitor
+graphics card:
+                       Intel TigerLake-LP GT2 [Iris Xe Graphics]
+sound:
+                       Intel Tiger Lake-LP Smart Sound Technology Audio Controller
+storage:
+                       Intel SATA controller
+                       Intel Volume Management Device NVMe RAID Controller
+                       Kingston Technology Company OM3PDP3 NVMe SSD
+network:
+  wlp2s0               MEDIATEK WLAN controller
+  enp1s0               Realtek RTL8111/8168/8411 PCI Express Gigabit Ethernet Controller
+network interface:
+  wlp2s0               Ethernet network interface
+  enp1s0               Ethernet network interface
+  lo                   Loopback network interface
+disk:
+  /dev/nvme0n1         Kingston Technology Company OM3PDP3 NVMe SSD
+partition:
+  /dev/nvme0n1p1       Partition
+  /dev/nvme0n1p2       Partition
+  /dev/nvme0n1p3       Partition
+  /dev/nvme0n1p4       Partition
+  /dev/nvme0n1p5       Partition
+usb controller:
+                       Intel Tiger Lake-LP USB 3.2 Gen 2x1 xHCI Host Controller
+bios:
+                       BIOS
+bridge:
+                       Intel Tiger Lake-LP LPC Controller
+                       Intel PCI bridge
+                       Intel PCI bridge
+                       Intel 11th Gen Core Processor Host Bridge/DRAM Registers
+                       Intel Tiger Lake-LP PCI Express Root Port #9
+hub:
+                       Linux Foundation 2.0 root hub
+                       Linux Foundation 3.0 root hub
+memory:
+                       Main Memory
+unknown:
+                       FPU
+                       DMA controller
+                       PIC
+                       Keyboard controller
+                       Intel System peripheral
+                       Intel GNA Scoring Accelerator module
+                       Intel Tiger Lake-LP Management Engine Interface
+                       Intel Tiger Lake-LP SPI Controller
+                       Intel Tiger Lake-LP Serial IO I2C Controller #4
+                       Intel System peripheral
+                       Intel Tiger Lake-LP Serial IO I2C Controller #0
+                       Intel Tiger Lake-LP Shared SRAM
+                       Intel Tiger Lake-LP Serial IO I2C Controller #5
+                       Intel Tiger Lake-LP SMBus Controller
+                       Intel Tiger Lake-LP Serial IO I2C Controller #3
+                       Lite-On Wireless_Device
+                       Quanta HD User Facing
+                       Elan Microelectronics ELAN:Fingerprint
