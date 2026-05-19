@@ -151,7 +151,14 @@ Los archivos individuales están disponibles en el repositorio (`lsmod_costamagn
 
 La diferencia es significativa: el kernel carga únicamente los módulos necesarios para el hardware detectado y los servicios activos. Los 6569 módulos restantes están disponibles en disco pero inactivos; `modprobe` o `udev` los cargarán automáticamente si el hardware correspondiente es detectado o si un proceso los solicita.
 
-> **Pendiente:** agregar salidas de `lsmod_davila.txt` con el diff entre integrantes una vez que los demás miembros del grupo ejecuten el comando.
+**Módulos cargados vs. disponibles (Davila Tomassi):**
+| Métrica                                | Valor  |
+| -------------------------------------- | ------ |
+| Módulos actualmente cargados           | 142    |
+| Módulos disponibles en `/lib/modules/` | 6542   |
+| Porcentaje cargado                     | ~2.1 % |
+
+El sistema utilizado por Davila corresponde a una máquina virtual, por lo que la cantidad de módulos cargados es ligeramente menor respecto a los equipos físicos de los demás integrantes. La mayoría de los drivers activos corresponden a hardware virtualizado provisto por el hipervisor, como adaptadores de red emulados, audio virtual y controladores gráficos virtuales
 
 **Módulos cargados vs. disponibles (Sabena)**
 
@@ -175,23 +182,24 @@ usbcore: registered new interface driver <nombre>
 
 O bien `udev` intenta cargarlo con `modprobe` y falla silenciosamente. El dispositivo queda sin funcionalidad (no aparece en `/dev` o aparece pero sin driver asociado). El sistema no se interrumpe: simplemente ese hardware queda inoperativo.
 
-**Comparación de módulos entre integrantes:**
+
 
 #### Comparación de módulos entre integrantes
 
 ```bash
 diff lsmod_costamagna.txt lsmod_sabena.txt lsmod_davila.txt
 ```
+| Aspecto            | Costamagna              | Sabena                                        | Davila                              |
+| ------------------ | ----------------------- | --------------------------------------------- | ----------------------------------- |
+| **GPU**            | AMD (`amdgpu`)          | Intel integrado (`i915`)                      | VMware virtual (`vmwgfx`)           |
+| **Audio**          | AMD (`snd_sof_amd_acp`) | Intel Tiger Lake (`snd_sof_intel_hda_common`) | Intel AC97 virtual (`snd_intel8x0`) |
+| **WiFi**           | Intel (`iwlwifi`)       | MediaTek (`mt7921e`)                          | —                                   |
+| **Virtualización** | AMD-V (`kvm_amd`)       | VT-x (`kvm_intel`)                            | VMware virtual machine              |
+| **Contenedores**   | Docker activo           | Sin contenedores                              | Sin contenedores                    |
 
-| Aspecto | Costamagna | Sabena | Davila |
-|---|---|---|---|
-| **GPU** | AMD (`amdgpu`) | Intel integrado (`i915`) | — |
-| **Audio** | AMD (`snd_sof_amd_acp`) | Intel Tiger Lake (`snd_sof_intel_hda_common`) | — |
-| **WiFi** | Intel (`iwlwifi`) | MediaTek (`mt7921e`) | — |
-| **Virtualización** | AMD-V (`kvm_amd`) | VT-x (`kvm_intel`) | — |
-| **Contenedores** | Docker activo | Sin contenedores | — |
 
-> **Pendiente:** completar con los módulos de Davila.
+
+
 
 Lo que se ve en la tabla tiene sentido: cada sistema carga exactamente los drivers del hardware que tiene instalado. La GPU, el chip de audio y la placa WiFi son distintos en cada máquina, entonces los módulos también lo son. Lo único que coincide entre los tres sistemas son los subsistemas genéricos como USB, Bluetooth o la cámara, que funcionan igual en cualquier equipo.
 
@@ -209,12 +217,16 @@ hwinfo --short > hwinfo_apellido.txt
 
 Los reportes completos se encuentran adjuntos en los siguientes archivos del repositorio:
 - [Reporte de Matias Costamagna](hwinfo_costamagna.txt)
-- [Reporte de Carlos Valentino Davila](hwinfo_davila.txt) (Pendiente de subir)
+- [Reporte de Carlos Valentino Davila](hwinfo_davila.txt) 
 - [Reporte de Pilar Sabena](hwinfo_sabena.txt)
 
 **Breve descripción del hardware detectado (Matias Costamagna):**
 
 El sistema de Costamagna está basado en un procesador **AMD Ryzen 7 4700U** (arquitectura Renoir, 8 núcleos) con gráficos integrados **ATI Renoir** gestionados por el driver `amdgpu`. El almacenamiento es un SSD **Samsung NVMe** (`/dev/nvme0n1`), soportado por el driver `nvme`. La conectividad inalámbrica y Bluetooth provienen de una placa **Intel Wi-Fi 6 AX200**, que utiliza el módulo `iwlwifi`. El audio es manejado por `snd_hda_intel` a través del controlador AMD Family 17h HD Audio. Se detectaron también interfaces de red virtuales correspondientes a Docker (`docker0`) y libvirt (`virbr0`), lo que confirma los módulos de virtualización y contenedores (`kvm_amd`, `bridge`) visibles en la Sección 3.
+
+**Breve descripción del hardware detectado (Davila Tomassi Carlos Valentino):**
+
+El sistema de Davila se ejecuta dentro de una máquina virtual VMware sobre un host con procesador **AMD Ryzen 5 5600G** with Radeon Graphics. El adaptador gráfico detectado utiliza el driver **vmwgfx**, encargado de proveer aceleración gráfica virtualizada. La interfaz de red corresponde a un dispositivo Intel emulado mediante el **módulo e1000**, mientras que el audio utiliza el **controlador virtual snd_intel8x0**. A diferencia de los sistemas físicos analizados por los otros integrantes, gran parte del hardware visible para el kernel corresponde a dispositivos virtualizados generados por el hipervisor y no a periféricos físicos reales.
 
 **Breve descripción del hardware detectado (Pilar Sabena):**
 Al inspeccionar el archivo `hwinfo_sabena.txt`, se observa que el kernel de Linux interactúa directamente con una arquitectura basada en **Intel** (procesador y gráficos integrados a través del driver `i915`), componentes de almacenamiento masivo **NVMe**, y adaptadores de red inalámbrica gestionados dinámicamente por módulos del kernel. Esto ratifica el análisis de la Sección 3, donde los módulos cargados en memoria responden estrictamente a este inventario de componentes físicos.
@@ -267,9 +279,16 @@ El output sigue el mismo flujo general pero presenta diferencias concretas respe
 
 En ambos casos el resultado es el mismo: una sola llamada `write(1, "Hola Sistemas de Computacion!\n", 30)` produce el output visible, y `exit_group(0)` cierra el proceso limpiamente. Las diferencias son ruido del entorno, no del programa.
 
+**Análisis de la salida (Davila)**
+
+La traza obtenida en strace_davila.txt sigue el mismo patrón general observado por los demás integrantes. El proceso comienza con execve, donde el kernel carga el binario hello, seguido de múltiples llamadas relacionadas con la carga dinámica de bibliotecas (openat, mmap, access, read). Estas syscalls pertenecen principalmente al linker dinámico y a la inicialización del entorno de ejecución de la libc.
+
+También se observan llamadas a brk y mmap, utilizadas para reservar memoria para el heap y otras estructuras internas del proceso. Finalmente, el printf del programa termina traducido en una syscall write sobre el descriptor estándar de salida (stdout), confirmando nuevamente que las funciones de la libc actúan como una capa de abstracción sobre las syscalls reales del kernel.
+
+Las diferencias observadas respecto a las demás trazas son menores y responden principalmente al entorno virtualizado utilizado por Davila y a diferencias en las versiones de bibliotecas instaladas en el sistema.
 Los reportes completos se encuentran en el repositorio:
 - [strace Matias Costamagna](strace_costamagna.txt)
-- [strace Carlos Valentino Davila](strace_davila.txt) (Pendiente de subir)
+- [strace Carlos Valentino Davila](strace_davila.txt) 
 - [strace Maria Pilar Sabena](strace_sabena.txt)
 
 ### 7. ¿Qué es un segmentation fault y cómo lo manejan el kernel y un programa?
