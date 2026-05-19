@@ -1,0 +1,53 @@
+cpu:
+                       AMD Ryzen 5 5600G with Radeon Graphics, 3892 MHz
+                       AMD Ryzen 5 5600G with Radeon Graphics, 3892 MHz
+                       AMD Ryzen 5 5600G with Radeon Graphics, 3892 MHz
+                       AMD Ryzen 5 5600G with Radeon Graphics, 3892 MHz
+                       AMD Ryzen 5 5600G with Radeon Graphics, 3892 MHz
+                       AMD Ryzen 5 5600G with Radeon Graphics, 3892 MHz
+keyboard:
+  /dev/input/event2    AT Translated Set 2 keyboard
+mouse:
+  /dev/input/mice      VirtualBox USB Tablet
+  /dev/input/mice      ImExPS/2 Generic Explorer Mouse
+  /dev/input/mice      VirtualBox mouse integration
+graphics card:
+                       VMware VMWARE0405
+sound:
+                       Intel 82801AA AC'97 Audio Controller
+storage:
+                       Intel 82801HM/HEM (ICH8M/ICH8M-E) SATA Controller [AHCI mode]
+                       Intel 82371AB/EB/MB PIIX4 IDE
+network:
+  enp0s3               Intel PRO/1000 MT Desktop Adapter
+network interface:
+  lo                   Loopback network interface
+  enp0s3               Ethernet network interface
+disk:
+  /dev/sda             VBOX HARDDISK
+partition:
+  /dev/sda1            Partition
+  /dev/sda2            Partition
+  /dev/sda3            Partition
+cdrom:
+  /dev/sr0             VBOX CD-ROM
+usb controller:
+                       Apple KeyLargo/Intrepid USB
+                       Intel 82801FB/FBM/FR/FW/FRW (ICH6 Family) USB2 EHCI Controller
+bios:
+                       BIOS
+bridge:
+                       Intel 82371SB PIIX3 ISA [Natoma/Triton II]
+                       Intel 82371AB/EB/MB PIIX4 ACPI
+                       Intel 440FX - 82441FX PMC [Natoma]
+hub:
+                       Linux Foundation 1.1 root hub
+                       Linux Foundation 2.0 root hub
+memory:
+                       Main Memory
+unknown:
+                       FPU
+                       DMA controller
+                       PIC
+                       Keyboard controller
+  /dev/input/mice      InnoTek Systemberatung VirtualBox Guest Service
