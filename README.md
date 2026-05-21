@@ -298,3 +298,132 @@ Un segmentation fault ocurre cuando un proceso intenta acceder a una dirección 
 Cuando eso pasa en un programa de usuario, el hardware genera una excepción (page fault) que el kernel intercepta. El kernel determina que el acceso es inválido, le manda la señal `SIGSEGV` al proceso y lo termina. El resto del sistema no se ve afectado.
 
 En un módulo de kernel la historia es distinta. No hay nadie por encima que pueda interceptar el error y contenerlo. Un acceso de memoria inválido en espacio de kernel genera un **kernel panic** o un **oops** — el sistema puede quedar inestable o directamente reiniciarse. No hay red de seguridad.
+
+### 8. ¿Se animan a intentar firmar un módulo de kernel y documentar el proceso ?  
+
+Con el objetivo de experimentar el mecanismo de firmado de módulos del kernel Linux, se generó un par de claves RSA utilizando OpenSSL y posteriormente se utilizó el script `sign-file` incluido en los headers del kernel.
+
+Primero se creó un directorio para almacenar las claves criptográficas:
+
+```bash
+mkdir ~/module-signing
+cd ~/module-signing
+```
+Luego se generó una clave privada y un certificado público mediante:
+```bash
+openssl req -new -x509 -newkey rsa:2048 \
+-keyout MOK.priv \
+-outform DER \
+-out MOK.der \
+-nodes \
+-days 36500 \
+-subj "/CN=ModuloKernel/"
+```
+Esto produjo:
+
+`MOK.priv`: clave privada RSA.
+`MOK.der`: certificado público.
+
+Posteriormente se utilizó el script sign-file provisto por el kernel para firmar el módulo mimodulo.ko:
+```bash
+make clean
+make
+```
+La carga del módulo se realizó mediante:
+```bash
+sudo insmod mimodulo.ko
+```
+y los mensajes del kernel fueron verificados utilizando:
+```bash
+sudo dmesg | tail -5
+```
+La salida mostró correctamente:
+```bash
+Modulo cargado en el kernel - Equipo sudo ApruebenOS
+```
+Luego el módulo fue descargado mediante:
+```bash
+sudo rmmod mimodulo
+```
+La salida mostró correctamente:
+```bash
+Modulo descargado en el kernel - Equipo sudo ApruebenOS
+```
+Esto permitió comprobar correctamente la ejecución de las rutinas de inicialización y liberación del módulo firmado dentro del kernel Linux.
+
+### 9. Agregar evidencia de la compilación, carga y descarga de su propio módulo imprimiendo el nombre del equipo en los registros del kernel. 
+
+## Generación de la firma y las claves RSA
+![Generación de la firma y las claves RSA](assets/2.png)
+## Proceso de carga y descarga del módulo en el kernel
+![Proceso de carga y descarga del módulo en el kernel](assets/3.png)
+
+Se puede leer en la consola, cuando generamos la firma, la siguiente línea "EFI variables are not supported on this system."
+La máquina virtual utilizada no posee soporte para variables EFI/UEFI, por lo que `mokutil` no puede consultar el estado de Secure Boot. Esto indica que el entorno virtualizado se encuentra utilizando BIOS legado o una configuración sin soporte UEFI. Aun así, fue posible realizar el firmado criptográfico del módulo y verificar la presencia de la firma mediante `modinfo`.
+
+![Evidencia de la firma criptográfica en la información del módulo cargado](assets/4.png)
+
+### 10.¿Que pasa si mi compañero con secure boot habilitado intenta cargar un módulo firmado por mi?
+
+Aunque un módulo se encuentre firmado, el kernel solamente confiará en él si la clave pública correspondiente se encuentra registrada dentro del firmware UEFI o dentro del sistema MOK (Machine Owner Key).
+
+Por lo tanto, si un compañero con `Secure Boot` habilitado intenta cargar un módulo firmado con una clave privada ajena, el sistema probablemente rechazará la carga del módulo debido a que la firma no pertenece a una entidad confiable registrada localmente.
+
+En nuestro caso, el módulo fue firmado utilizando una clave RSA generada localmente por uno de los integrantes del grupo. Sin embargo, dicha clave no forma parte de las claves confiables almacenadas en el firmware UEFI ni fue importada mediante MOK. Por este motivo, si otro integrante intenta cargar el módulo firmado en una computadora con Secure Boot habilitado, el kernel probablemente rechazará la operación indicando que la firma no pertenece a una autoridad confiable.
+
+Esto demuestra que no alcanza únicamente con firmar un módulo: además es necesario que la clave pública utilizada para validar la firma esté registrada dentro de la cadena de confianza del sistema.
+
+En consecuencia, el módulo no podrá cargarse salvo que previamente se importe y registre la clave pública utilizada para generar la firma.
+
+### 11. Consecuencia principal del parche de Microsoft sobre GRUB en sistemas con arranque dual
+Según el artículo analizado, Microsoft distribuyó una actualización de seguridad relacionada con Secure Boot y la base de datos DBX (*Forbidden Signature Database*) utilizada por UEFI para bloquear bootloaders vulnerables.
+La actualización tenía como objetivo bloquear versiones vulnerables de GRUB asociadas a la vulnerabilidad conocida como *Boothole*, la cual permitía modificar el proceso de arranque incluso teniendo Secure Boot habilitado. Para solucionar este problema, Microsoft actualizó la lista de binarios considerados inseguros dentro del firmware.
+
+
+La consecuencia principal fue que numerosos sistemas Linux con arranque dual (Windows + Linux) dejaron de iniciar correctamente. Muchas instalaciones utilizaban versiones de GRUB que pasaron a ser bloqueadas por el firmware luego de la actualización de la DBX, impidiendo el arranque del sistema Linux incluso cuando la instalación era legítima y funcional anteriormente.
+
+El problema afectó especialmente a sistemas donde:
+- el bootloader no había sido actualizado,
+- existían configuraciones personalizadas,
+- o se utilizaban distribuciones menos mantenidas.
+
+Esto evidenció cómo una modificación en la cadena de confianza de Secure Boot puede afectar directamente la compatibilidad y disponibilidad de los sistemas operativos instalados.
+
+
+## Implicancia de desactivar Secure Boot como solución al problema
+
+Una de las soluciones más utilizadas por los usuarios afectados fue desactivar Secure Boot desde la configuración UEFI/BIOS del sistema.
+
+Al desactivar Secure Boot, el firmware deja de verificar firmas digitales durante el arranque. Como consecuencia:
+- GRUB vuelve a ejecutarse normalmente,
+- pueden cargarse kernels o bootloaders no firmados,
+- y el sistema vuelve a iniciar incluso si utiliza versiones bloqueadas por la DBX.
+
+Sin embargo, esta solución implica una reducción importante del nivel de seguridad del sistema. El objetivo principal de Secure Boot es impedir que software malicioso se ejecute antes del sistema operativo, especialmente bootkits o rootkits capaces de modificar el proceso de arranque.
+
+Sin Secure Boot habilitado:
+- cualquier bootloader puede ejecutarse,
+- se pierde la cadena de confianza criptográfica,
+- y resulta más sencillo para un atacante persistir a bajo nivel dentro del sistema.
+
+Por lo tanto, aunque desactivar Secure Boot puede resolver temporalmente problemas de compatibilidad, también elimina una de las principales barreras de protección presentes en sistemas modernos.
+
+## Propósito principal de Secure Boot
+
+Secure Boot es un mecanismo de seguridad incorporado en UEFI cuyo objetivo principal es garantizar que únicamente software confiable y firmado criptográficamente pueda ejecutarse durante el proceso de arranque.
+
+El funcionamiento se basa en una cadena de confianza:
+1. El firmware UEFI verifica la firma del bootloader.
+2. El bootloader verifica el kernel.
+3. El kernel puede verificar módulos y componentes adicionales.
+
+Cada etapa valida criptográficamente la siguiente antes de permitir su ejecución. De esta manera se evita que código no autorizado o modificado pueda ejecutarse antes de que el sistema operativo tome control del hardware.
+
+El principal objetivo de este mecanismo es proteger al sistema frente a amenazas de muy bajo nivel, especialmente:
+- bootkits,
+- rootkits,
+- malware persistente en el arranque,
+- modificaciones maliciosas del kernel,
+- y ataques orientados a comprometer el sistema antes de que el antivirus o las protecciones tradicionales puedan activarse.
+
+En entornos empresariales y servidores, Secure Boot representa además un mecanismo fundamental para mantener integridad y trazabilidad del software ejecutado desde el inicio del sistema.
