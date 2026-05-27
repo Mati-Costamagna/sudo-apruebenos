@@ -148,6 +148,8 @@ cat /proc/clipboard
 sudo rmmod clipboard
 ```
 
+![Demo del módulo clipboard](assets/palabras.png)
+
 ## Herramientas y entorno
 
 ### En la BeagleBone Black
@@ -253,12 +255,22 @@ dmesg | tail -5          # debe mostrar major asignado y "inicializado"
 ls -l /dev/SdC_cdd       # char device c <major> 0
 ```
 
+Una vez cargado, se puede verificar la lectura y el cambio de señal directamente desde la terminal:
+
+![Carga del módulo y lectura manual](assets/image copy.png)
+
+El driver responde con el valor en mV de la señal seleccionada: `cat /dev/SdC_cdd` devuelve el canal activo y `echo 1 > /dev/SdC_cdd` conmuta al canal 1.
+
 ### 4. Probar con el script de prueba
 
 ```bash
 cd ~/TP5/test
 sudo bash test_driver.sh
 ```
+
+![Salida del script de prueba](assets/test.png)
+
+El script carga el módulo, verifica que el device file fue creado como `crw` con major 238, lee tres veces cada señal, prueba que un valor inválido retorna `EINVAL` y finalmente descarga el módulo.
 
 ### 5. Correr la aplicación gráfica (desde la PC)
 
@@ -274,6 +286,14 @@ python3 signal_monitor.py --signal 0
 
 Presioná **`s`** para cambiar de señal. El gráfico se reinicia automáticamente.
 
+**Canal 0 — AIN0 (LM35, temperatura):** señal estable alrededor de ~220 mV a temperatura ambiente.
+
+![Gráfico Canal 0 — LM35](assets/LM35.png)
+
+**Canal 1 — AIN1 (LDR, luz):** señal variable según la iluminación del ambiente.
+
+![Gráfico Canal 1 — LDR](assets/photosensor.png)
+
 ### 6. Remover el módulo
 
 ```bash
@@ -283,6 +303,10 @@ dmesg | tail -3
 ```
 
 El módulo se compila directamente en la BBB sin necesidad de cross-compilación. Las dos señales provienen de los pines AIN0 y AIN1 del ADC integrado, leídas a través del subsistema IIO del kernel.
+
+Los logs del kernel muestran el ciclo completo de ambos módulos (`sdec_cdd` y `clipboard`): inicialización con major asignado, cambios de señal seleccionada y descarga limpia.
+
+![Logs de kernel — dmesg](assets/image.png)
 
 ---
 
