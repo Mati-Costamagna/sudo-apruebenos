@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 import argparse
+import subprocess
 import time
+import matplotlib
+matplotlib.use("TkAgg")  # Asegura compatibilidad con animación
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
@@ -11,20 +14,28 @@ SIGNALS = {
 }
 MAX_POINTS = 60
 
+BBB_HOST = "debian@10.42.0.228"
+
 current_signal = 0
 values = []
 timestamps = []
 start_time = time.time()
 
 
+def _ssh(cmd):
+    result = subprocess.run(
+        ["ssh", "-i", "~/.ssh/id_rsa_bbb", "-o", "BatchMode=yes", BBB_HOST, cmd],
+        capture_output=True, text=True, timeout=5
+    )
+    return result.stdout.strip()
+
+
 def select_signal(sig_id):
-    with open(DEVICE, "w") as f:
-        f.write(str(sig_id))
+    _ssh(f"echo {sig_id} > {DEVICE}")
 
 
 def read_value():
-    with open(DEVICE, "r") as f:
-        return float(f.read().strip())
+    return float(_ssh(f"cat {DEVICE}"))
 
 
 def reset_buffers():
