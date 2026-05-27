@@ -21,7 +21,7 @@
 
 Un "driver" es aquel que conduce, administra y controla la entidad bajo su mando. En el contexto del software de sistemas, un **device driver** hace exactamente eso con un dispositivo: proporciona una abstracción del hardware y una interfaz, posiblemente estandarizada, para que el sistema operativo y las aplicaciones de usuario puedan interactuar con él sin conocer los detalles de su funcionamiento interno.
 
-Es importante distinguir tres conceptos que suelen confundirse:
+Es importante distinguir tres conceptos:
 
 - **Device driver (software driver):** pieza de software que controla un dispositivo a través del sistema operativo. Es el foco de este trabajo.
 - **Device controller:** dispositivo de hardware que gestiona otro dispositivo (ej. un controlador IDE, un controlador USB, un controlador SPI). Es hardware en sí mismo, y generalmente necesita su propio driver (denominado bus driver) para ser gestionado.
@@ -50,7 +50,8 @@ Este trabajo práctico cubre los siguientes temas:
 - **Transferencia de datos kernel ↔ userspace:** uso correcto de `copy_to_user()` y `copy_from_user()`; por qué no se puede usar `memcpy` directamente.
 - **Timers en el kernel:** uso de `timer_list` para ejecutar código periódico en espacio de kernel (muestreo de señales a 1 Hz).
 - **Sincronización en kernel:** protección de datos compartidos entre el timer callback y las `file_operations` mediante `spinlock`.
-- **Subsistema IIO:** uso de `iio_channel_get()` / `iio_read_channel_raw()` para leer el ADC integrado de la BeagleBone Black desde un módulo kernel.
+- **Subsistema IIO:** lectura del ADC integrado de la BeagleBone Black mediante los archivos sysfs expuestos por el subsistema IIO (`/sys/bus/iio/devices/iio:device0/in_voltageX_raw`), usando `filp_open` + `kernel_read` desde el módulo. La API formal `iio_channel_get()` requiere un `platform_device` y entradas en el Device Tree; al tratarse de un módulo standalone sin nodo DT propio, se accede a sysfs directamente.
+- **procfs:** creación de entradas en `/proc` con `proc_ops` (API recomendada desde kernel 5.6, que reemplaza a `file_operations` para evitar overhead de campos que no aplican en procfs).
 - **Aplicación de usuario:** lectura de un CDF, selección de señal vía `write()`, graficación en tiempo real con ejes correctamente etiquetados y reset al cambiar de señal.
 
 ## Hardware
@@ -114,6 +115,39 @@ Un `timer_list` del kernel dispara cada segundo (`jiffies + HZ`), lee ambos cana
 
 El par **major:minor** se asigna dinámicamente con `alloc_chrdev_region()`. udev crea automáticamente `/dev/SdC_cdd` al cargar el módulo.
 
+## Módulo /proc — clipboard
+
+La consigna también pide implementar un módulo que use el sistema de archivos `/proc` en lugar del vertical Character Device. Este ejemplo ilustra la diferencia entre ambos enfoques.
+
+### Diferencias clave: CDD vs procfs
+
+| Aspecto | CDD (`sdec_cdd`) | procfs (`clipboard`) |
+|---|---|---|
+| Nodo | `/dev/SdC_cdd` | `/proc/clipboard` |
+| API de operaciones | `struct file_operations` | `struct proc_ops` |
+| Registro | `alloc_chrdev_region` + `cdev_add` | `proc_create` |
+| Propósito típico | Dispositivos hardware | Información/configuración del kernel |
+| Major:minor | Sí (asignado por kernel) | No aplica |
+
+Desde kernel 5.6, las entradas `/proc` deben usar `proc_ops` en lugar de `file_operations`. Esto evita que el VFS aplique optimizaciones (como `llseek`) que no tienen sentido en archivos virtuales de procfs.
+
+### Uso
+
+```bash
+# Cargar el módulo:
+sudo insmod clipboard.ko
+
+# Escribir en el portapapeles:
+echo "Hola mundo..." > /proc/clipboard
+
+# Leer el portapapeles:
+cat /proc/clipboard
+# Salida: Hola mundo...
+
+# Remover el módulo:
+sudo rmmod clipboard
+```
+
 ## Herramientas y entorno
 
 ### En la BeagleBone Black
@@ -136,6 +170,62 @@ python3 -m venv venv
 source venv/bin/activate
 pip install matplotlib
 ```
+
+## Conexión headless con la BeagleBone Black
+
+### Hardware requerido
+
+| Elemento | Uso |
+|---|---|
+| Cable Micro-USB | Alimentación 5V de la BBB |
+| Cable Ethernet (Cat5e+) | Conexión directa PC ↔ BBB |
+| PC Linux con puerto Ethernet físico | Host de desarrollo |
+
+### Paso 1 — Conexión física y verificación de arranque
+
+Conectar el Micro-USB para energizar la BBB. Verificar que el LED de Power permanezca fijo y los 4 LEDs azules de estado comiencen a parpadear, indicando que el kernel interno inició correctamente. Luego conectar el cable Ethernet directo entre la BBB y la PC.
+
+### Paso 2 — Identificar la interfaz Ethernet en la PC
+
+```bash
+dmesg | grep -iE 'eth|enp|net' | tail -n 10
+```
+
+El sistema asigna un nombre lógico a la interfaz (ej. `enp1s0`). Confirmar con el mensaje `enp1s0: Link is Up`.
+
+### Paso 3 — Configurar la PC como servidor DHCP (compartir conexión)
+
+La BBB no tiene IP estática en su puerto Ethernet; necesita que un router le asigne una dirección. Se configura la PC como servidor DHCP temporal con NetworkManager:
+
+```bash
+# Crear perfil de red con modo compartido
+sudo nmcli con add type ethernet ifname enp1s0 con-name BeagleEthernet ipv4.method shared
+
+# Activar la configuración
+sudo nmcli con up BeagleEthernet
+```
+
+El modo `shared` asigna automáticamente un rango de IPs privadas `10.42.0.X` al dispositivo conectado.
+
+### Paso 4 — Descubrir la IP asignada a la BBB
+
+Esperar ~15 segundos para que la placa negocie su dirección y luego leer la tabla ARP:
+
+```bash
+arp -an | grep enp1s0
+# Alternativa:
+ip r | grep enp1s0
+```
+
+### Paso 5 — Conectarse por SSH
+
+```bash
+ssh debian@10.42.0.X   # reemplazar X por el número asignado
+# usuario: debian
+# contraseña: temppwd
+```
+
+---
 
 ## Compilación y uso
 
