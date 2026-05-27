@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 600" font-family="sans-serif" font-size="12">
+  <defs>
+    <marker id="a" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#495057"/>
+    </marker>
+  </defs>
+
+  <rect width="860" height="600" fill="#f8f9fa" rx="8"/>
+  <text x="430" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#212529">Arquitectura del sistema — SdC CDD</text>
+
+  <!-- ══════════ CAPA HARDWARE ══════════ -->
+  <rect x="20" y="45" width="820" height="118" fill="#fff3cd" stroke="#856404" stroke-width="2" rx="6"/>
+  <text x="38" y="63" font-size="11" font-weight="bold" fill="#856404">Hardware</text>
+
+  <!-- LM35 -->
+  <rect x="50" y="72" width="155" height="68" fill="#fffbe6" stroke="#856404" stroke-width="1.5" rx="4"/>
+  <text x="127" y="93"  text-anchor="middle" font-size="12" font-weight="bold" fill="#856404">LM35</text>
+  <text x="127" y="109" text-anchor="middle" font-size="10" fill="#6c757d">Sensor temperatura</text>
+  <text x="127" y="124" text-anchor="middle" font-size="10" fill="#6c757d">VOUT → AIN0 (P9.39)</text>
+
+  <!-- LDR -->
+  <rect x="230" y="72" width="155" height="68" fill="#fffbe6" stroke="#856404" stroke-width="1.5" rx="4"/>
+  <text x="307" y="93"  text-anchor="middle" font-size="12" font-weight="bold" fill="#856404">LDR</text>
+  <text x="307" y="109" text-anchor="middle" font-size="10" fill="#6c757d">Sensor luz</text>
+  <text x="307" y="124" text-anchor="middle" font-size="10" fill="#6c757d">Divisor R → AIN1 (P9.40)</text>
+
+  <!-- ADC -->
+  <rect x="510" y="67" width="300" height="78" fill="#fd7e14" stroke="#7c3d08" stroke-width="1.5" rx="4"/>
+  <text x="660" y="93"  text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">ADC integrado 12-bit</text>
+  <text x="660" y="110" text-anchor="middle" font-size="10" fill="#ffe">BeagleBone Black</text>
+  <text x="660" y="126" text-anchor="middle" font-size="10" fill="#ffe">AIN0 / AIN1  →  raw 0–4095</text>
+
+  <!-- LM35 → ADC -->
+  <line x1="205" y1="100" x2="510" y2="100" stroke="#856404" stroke-width="1.5" marker-end="url(#a)"/>
+  <!-- LDR → ADC -->
+  <line x1="385" y1="115" x2="510" y2="115" stroke="#856404" stroke-width="1.5" marker-end="url(#a)"/>
+  <text x="340" y="96"  font-size="9" fill="#856404">AIN0</text>
+  <text x="400" y="130" font-size="9" fill="#856404">AIN1</text>
+
+  <!-- ══════════ CAPA KERNEL ══════════ -->
+  <rect x="20" y="185" width="820" height="215" fill="#cfe2ff" stroke="#084298" stroke-width="2" rx="6"/>
+  <text x="38" y="203" font-size="11" font-weight="bold" fill="#084298">Kernel Space</text>
+
+  <!-- Fila superior del kernel: 3 bloques horizontales -->
+  <!-- IIO sysfs -->
+  <rect x="45"  y="215" width="210" height="68" fill="#fff" stroke="#084298" stroke-width="1.5" rx="4"/>
+  <text x="150" y="236" text-anchor="middle" font-size="11" font-weight="bold" fill="#084298">Subsistema IIO</text>
+  <text x="150" y="252" text-anchor="middle" font-size="9"  fill="#6c757d">sysfs in_voltageN_raw</text>
+  <text x="150" y="266" text-anchor="middle" font-size="9"  fill="#6c757d">lee raw ADC</text>
+
+  <!-- timer_list -->
+  <rect x="305" y="215" width="195" height="68" fill="#fff" stroke="#084298" stroke-width="1.5" rx="4"/>
+  <text x="402" y="236" text-anchor="middle" font-size="11" font-weight="bold" fill="#084298">timer_list</text>
+  <text x="402" y="252" text-anchor="middle" font-size="9"  fill="#6c757d">callback cada 1 s</text>
+  <text x="402" y="266" text-anchor="middle" font-size="9"  fill="#6c757d">jiffies + HZ</text>
+
+  <!-- signal_values -->
+  <rect x="552" y="215" width="255" height="68" fill="#fff" stroke="#084298" stroke-width="1.5" rx="4"/>
+  <text x="679" y="236" text-anchor="middle" font-size="11" font-weight="bold" fill="#084298">signal_values[2]</text>
+  <text x="679" y="252" text-anchor="middle" font-size="9"  fill="#6c757d">valores en mV</text>
+  <text x="679" y="266" text-anchor="middle" font-size="9"  fill="#6c757d">spinlock protegido</text>
+
+  <!-- IIO → timer -->
+  <line x1="255" y1="249" x2="305" y2="249" stroke="#084298" stroke-width="1.5" marker-end="url(#a)"/>
+  <!-- timer → signal_values -->
+  <line x1="500" y1="249" x2="552" y2="249" stroke="#084298" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- Fila inferior del kernel: 2 bloques -->
+  <!-- file_operations -->
+  <rect x="130" y="320" width="280" height="62" fill="#084298" stroke="#042080" stroke-width="1.5" rx="4"/>
+  <text x="270" y="342" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">sdec_cdd — file_operations</text>
+  <text x="270" y="358" text-anchor="middle" font-size="9"  fill="#cfe2ff">open / read / write / release</text>
+  <text x="270" y="372" text-anchor="middle" font-size="9"  fill="#cfe2ff">copy_to_user / copy_from_user</text>
+
+  <!-- /dev/SdC_cdd -->
+  <rect x="470" y="320" width="280" height="62" fill="#0a58ca" stroke="#042080" stroke-width="1.5" rx="4"/>
+  <text x="610" y="342" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">/dev/SdC_cdd</text>
+  <text x="610" y="358" text-anchor="middle" font-size="9"  fill="#cfe2ff">major:minor dinámico</text>
+  <text x="610" y="372" text-anchor="middle" font-size="9"  fill="#cfe2ff">creado automáticamente por udev</text>
+
+  <!-- signal_values → file_operations:
+       baja desde signal_values (x=679, y=283), va izquierda hasta x=270, baja a file_ops -->
+  <line x1="679" y1="283" x2="679" y2="305" stroke="#084298" stroke-width="1.5"/>
+  <line x1="679" y1="305" x2="270" y2="305" stroke="#084298" stroke-width="1.5"/>
+  <line x1="270" y1="305" x2="270" y2="320" stroke="#084298" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- file_ops → /dev/SdC_cdd -->
+  <line x1="410" y1="351" x2="470" y2="351" stroke="#084298" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- ADC → IIO sysfs (inter-capa, línea vertical a la izquierda) -->
+  <line x1="150" y1="163" x2="150" y2="215" stroke="#856404" stroke-width="1.5" stroke-dasharray="5" marker-end="url(#a)"/>
+  <text x="155" y="192" font-size="9" fill="#856404">sysfs IIO</text>
+
+  <!-- ══════════ CAPA USER SPACE ══════════ -->
+  <rect x="20" y="425" width="820" height="155" fill="#d1e7dd" stroke="#146c43" stroke-width="2" rx="6"/>
+  <text x="38" y="443" font-size="11" font-weight="bold" fill="#146c43">User Space — PC</text>
+
+  <!-- signal_monitor.py -->
+  <rect x="45" y="455" width="220" height="100" fill="#fff" stroke="#146c43" stroke-width="1.5" rx="4"/>
+  <text x="155" y="476" text-anchor="middle" font-size="11" font-weight="bold" fill="#146c43">signal_monitor.py</text>
+  <text x="155" y="492" text-anchor="middle" font-size="9"  fill="#6c757d">matplotlib — tiempo real</text>
+  <text x="155" y="508" text-anchor="middle" font-size="9"  fill="#6c757d">presionar 's' → cambia señal</text>
+  <text x="155" y="524" text-anchor="middle" font-size="9"  fill="#6c757d">gráfico se reinicia al cambiar</text>
+
+  <!-- SSH -->
+  <rect x="325" y="465" width="165" height="80" fill="#146c43" stroke="#0a3622" stroke-width="1.5" rx="4"/>
+  <text x="407" y="491" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">SSH</text>
+  <text x="407" y="507" text-anchor="middle" font-size="9"  fill="#d1e7dd">subprocess</text>
+  <text x="407" y="521" text-anchor="middle" font-size="9"  fill="#d1e7dd">debian@10.42.0.228</text>
+
+  <!-- operaciones CDF -->
+  <rect x="555" y="455" width="255" height="100" fill="#fff" stroke="#146c43" stroke-width="1.5" rx="4"/>
+  <text x="682" y="476" text-anchor="middle" font-size="11" font-weight="bold" fill="#146c43">Operaciones sobre CDF</text>
+  <text x="682" y="492" text-anchor="middle" font-size="9"  fill="#6c757d">write("0") → Canal 0 (LM35)</text>
+  <text x="682" y="508" text-anchor="middle" font-size="9"  fill="#6c757d">write("1") → Canal 1 (LDR)</text>
+  <text x="682" y="524" text-anchor="middle" font-size="9"  fill="#6c757d">read() → valor en mV</text>
+
+  <!-- app → SSH -->
+  <line x1="265" y1="505" x2="325" y2="505" stroke="#146c43" stroke-width="1.5" marker-end="url(#a)"/>
+  <!-- SSH → operaciones -->
+  <line x1="490" y1="505" x2="555" y2="505" stroke="#146c43" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- /dev/SdC_cdd → SSH:
+       sale por la derecha del canvas (x=800), baja, entra por la derecha al SSH -->
+  <line x1="750" y1="351" x2="800" y2="351" stroke="#0a58ca" stroke-width="1.5" stroke-dasharray="5"/>
+  <line x1="800" y1="351" x2="800" y2="505" stroke="#0a58ca" stroke-width="1.5" stroke-dasharray="5"/>
+  <line x1="800" y1="505" x2="800" y2="545" stroke="none"/>
+  <line x1="800" y1="505" x2="490" y2="505" stroke="none"/>
+  <!-- flecha final desde x=800,y=505 entra por arriba al SSH -->
+  <line x1="800" y1="351" x2="800" y2="410" stroke="#0a58ca" stroke-width="1.5" stroke-dasharray="5"/>
+  <line x1="800" y1="410" x2="407" y2="410" stroke="#0a58ca" stroke-width="1.5" stroke-dasharray="5"/>
+  <line x1="407" y1="410" x2="407" y2="465" stroke="#0a58ca" stroke-width="1.5" stroke-dasharray="5" marker-end="url(#a)"/>
+  <text x="805" y="390" font-size="9" fill="#0a58ca">via SSH</text>
+
+</svg>
