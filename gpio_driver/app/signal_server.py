@@ -139,7 +139,6 @@ HTML = """<!DOCTYPE html>
 <script>
 const POLL_MS  = 200;
 let   activeChannel = 0;
-let   lastLen = 0;
 
 const ctx = document.getElementById('chart').getContext('2d');
 const chart = new Chart(ctx, {
@@ -192,7 +191,6 @@ function showChannel(ch) {
 function clearChart() {
   chart.data.labels = [];
   chart.data.datasets[0].data = [];
-  lastLen = 0;
   chart.update();
 }
 
@@ -202,14 +200,8 @@ async function poll() {
     const json = await res.json();
     const vals = activeChannel === 0 ? json.ch0 : json.ch1;
 
-    if (vals.length < lastLen) { clearChart(); }
-
-    const newTimes = json.times.slice(lastLen);
-    const newVals  = vals.slice(lastLen);
-    lastLen = vals.length;
-
-    chart.data.labels.push(...newTimes.map(t => t.toFixed(2)));
-    chart.data.datasets[0].data.push(...newVals);
+    chart.data.labels = json.times.map(t => t.toFixed(2));
+    chart.data.datasets[0].data = vals;
     chart.update('none');
 
     const last = vals[vals.length - 1];

@@ -122,6 +122,92 @@ scp app/signal_server.py debian@10.42.0.228:~/gpio_driver/
 
 ---
 
+## Cross-compilación en profundidad
+
+### El target triple
+
+El toolchain se identifica mediante un **target triple** con la forma `arquitectura-sistema-ABI`:
+
+```
+arm-linux-gnueabihf
+ │     │      │
+ │     │      └─ gnueabihf: GNU, EABI hard-float
+ │     │           → usa registros de punto flotante del hardware (VFP)
+ │     │           → en lugar de emular FP por software
+ │     └─ linux: kernel Linux (syscall interface)
+ └─ arm: arquitectura destino (ARMv7-A, Cortex-A8 en el AM335x)
+```
+
+El prefijo `arm-linux-gnueabihf-` se antepone a cada herramienta del toolchain:
+
+| Herramienta | Función |
+|---|---|
+| `arm-linux-gnueabihf-gcc` | Compilador C para ARM |
+| `arm-linux-gnueabihf-ld` | Linker para ARM |
+| `arm-linux-gnueabihf-objdump` | Inspección de binarios ARM |
+| `arm-linux-gnueabihf-strip` | Eliminar símbolos de debug |
+
+### ARCH y CROSS_COMPILE en el sistema de build del kernel
+
+El sistema de build del kernel (Kbuild) usa dos variables para el cross-compiling:
+
+```makefile
+ARCH          := arm
+CROSS_COMPILE := arm-linux-gnueabihf-
+```
+
+- `ARCH` selecciona el árbol de arquitectura dentro del kernel (`arch/arm/`), determina las instrucciones generadas y los headers específicos de la arquitectura.
+- `CROSS_COMPILE` es el prefijo que Kbuild antepone a `gcc`, `ld`, `objcopy`, etc. para usar el toolchain correcto en lugar del compilador nativo del host.
+
+Sin estas variables, `make` usaría el `gcc` nativo de la PC y generaría código x86_64 que la BBB no puede ejecutar.
+
+### HOSTCC vs CC: herramientas host y herramientas target
+
+El sistema de build del kernel distingue dos tipos de herramientas:
+
+| Variable | Compilador | Genera código para | Uso |
+|---|---|---|---|
+| `CC` | `arm-linux-gnueabihf-gcc` | ARM (BBB) | Módulos `.ko`, código del kernel |
+| `HOSTCC` | `gcc` (nativo x86_64) | x86_64 (PC) | Herramientas del build que deben correr en la PC |
+
+Las herramientas declaradas como `hostprogs` en los Makefiles del kernel (como `modpost`, `mk_elfconfig`, `bin2c`) se compilan con `HOSTCC` porque necesitan **ejecutarse en la PC** durante el proceso de build, no en la BBB.
+
+### El problema de modpost
+
+`modpost` es la herramienta que procesa los símbolos de los módulos kernel y genera los archivos `.mod.c`. Es un `hostprog`: debe correr en la PC (x86_64) durante la compilación.
+
+Los headers del kernel extraídos de la BBB incluían un binario `modpost` compilado para ARM (ya que provienen de la placa). Al intentar ejecutarlo en la PC durante el build, el kernel fallaba silenciosamente o con error de formato.
+
+```bash
+file scripts/mod/modpost
+# ELF 32-bit LSB pie executable, ARM  ← no puede correr en x86_64
+```
+
+La solución fue recompilarlo para el host **sin** usar los headers del kernel como include path:
+
+```bash
+cd $KDIR/scripts/mod
+gcc -o modpost modpost.c file2alias.c sumversion.c
+# ELF 64-bit LSB pie executable, x86-64  ← correcto
+```
+
+El error al intentar compilarlo con `-I$KDIR/include` proviene de que los headers del kernel ARM definen tipos como `uint64_t`, `loff_t` y `dev_t` con tamaños ARM, que colisionan con las definiciones de glibc para x86_64. `modpost` es una herramienta del host y solo necesita headers del sistema.
+
+### Verificación del binario generado
+
+Después de compilar, siempre verificar que el `.ko` es para la arquitectura correcta:
+
+```bash
+file gpio_cdd.ko
+# gpio_cdd.ko: ELF 32-bit LSB relocatable, ARM, EABI5 version 1 (SYSV)
+#              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#              Confirma: ARM, 32-bit, relocatable (módulo, no ejecutable)
+```
+
+Un módulo es un objeto **relocatable** (no un ejecutable): no tiene dirección base fija. El kernel lo carga en memoria y resuelve las referencias a símbolos del kernel en tiempo de carga (`insmod`).
+
+---
+
 ## Pasos 1–5: drv1 a clipboard
 
 La progresión drv1 → drv4 → clipboard es idéntica a cualquier plataforma Linux. Estos módulos no tienen código específico de hardware, se compilan con el mismo Makefile y se transfieren y cargan igual en la BBB.
@@ -270,6 +356,40 @@ sudo insmod gpio_cdd.ko gpio_bank=2 gpio_bits=2,3
 # Muestreo más frecuente:
 sudo insmod gpio_cdd.ko sample_ms=10
 ```
+
+---
+
+## Efecto de la carga del CPU en el muestreo
+
+### Prueba realizada
+
+Con el servidor `signal_server.py` corriendo en segundo plano y el módulo `gpio_cdd.ko` activo, se ejecutó simultáneamente un loop intensivo de punto flotante en la misma BBB:
+
+```bash
+echo -e "import math,time\ni=0\nwhile True:\n    i+=1;t0=time.perf_counter();r=sum(math.sin(j)*math.cos(j)+math.sqrt(j)*math.log(j+1)+math.atan(j)*math.exp(j%10)+math.sinh(j%20)*math.cosh(j%20)+math.pow(j%100,2.7183) for j in range(1,200001));print(f'ciclo {i} | {(time.perf_counter()-t0)*1000:.1f} ms')" | python3
+```
+
+El loop realiza por ciclo 200 000 operaciones trigonométricas, logarítmicas, hiperbólicas y potencias con exponente irracional — operaciones costosas para la FPU del Cortex-A8.
+
+### Resultado observado
+
+Con el CPU bajo alta carga, la señal visualizada en el gráfico web presentó distorsión: los flancos de la señal digital se veían irregulares y el período aparente variaba, a pesar de que la señal del generador era constante.
+
+### Teoría implicada
+
+El muestreo en `gpio_cdd.ko` se realiza mediante un **timer del kernel** (`mod_timer`), que agenda callbacks con resolución de jiffies (1 ms por defecto en el AM335x). Este timer **no es de tiempo real**: el kernel puede demorar su ejecución si el CPU está ocupado atendiendo otra tarea de mayor prioridad o un proceso en espacio de usuario que monopoliza el scheduler.
+
+Cuando el loop de punto flotante carga el CPU:
+
+1. **Jitter en el timer**: el callback `timer_callback` no se ejecuta exactamente cada `sample_ms` sino con retardo variable, porque el scheduler CFS (Completely Fair Scheduler) reparte el CPU entre el proceso de carga y las tareas del kernel.
+
+2. **Latencia en el servidor web**: el hilo de muestreo de `signal_server.py` también compite por CPU, produciendo intervalos de muestreo irregulares en espacio de usuario.
+
+3. **Efecto combinado**: la irregularidad en ambos lados (kernel y userspace) se suma, resultando en una representación temporal distorsionada de la señal en el gráfico.
+
+### Conclusión
+
+Para mediciones precisas de señales digitales en un sistema Linux no-RT, la carga del CPU afecta directamente la fidelidad temporal del muestreo por polling y timers. Si se requiere precisión en los flancos, la solución correcta es usar **interrupciones GPIO** (`request_irq` con `IRQF_TRIGGER_RISING/FALLING`) en lugar de timers periódicos, ya que las interrupciones tienen prioridad sobre el scheduler y no dependen de la carga del sistema.
 
 ---
 
